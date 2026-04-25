@@ -4,15 +4,14 @@ import { getOwners } from "@/lib/data";
 import { getH2HCell } from "@/lib/aggregations";
 import { fmtPct } from "@/lib/constants";
 
-function cellColor(winPct: number, games: number): string {
+function cellColor(games: number, wins: number, losses: number): string {
   if (games === 0) return "transparent";
-  // Center 50% at neutral, lean green for >50%, red for <50%, opacity by sample size.
-  const t = (winPct - 0.5) * 2; // -1..1
-  const alpha = Math.min(0.7, 0.18 + games * 0.025);
-  if (t >= 0) {
-    return `rgba(61, 220, 132, ${alpha * Math.max(0.2, t)})`;
-  }
-  return `rgba(255, 93, 108, ${alpha * Math.max(0.2, -t)})`;
+  // Three flat states, no intensity scaling: green (winning record),
+  // yellow (tied), red (losing record). Every cell within a category looks
+  // identical so the matrix is easy to read at a glance.
+  if (wins > losses) return "rgba(61, 220, 132, 0.45)";
+  if (wins < losses) return "rgba(255, 93, 108, 0.45)";
+  return "rgba(245, 196, 81, 0.45)";
 }
 
 export function HeadToHeadMatrix() {
@@ -69,7 +68,7 @@ export function HeadToHeadMatrix() {
                 const losses = cell?.losses ?? 0;
                 const ties = cell?.ties ?? 0;
                 const winPct = cell?.winPct ?? 0;
-                const bg = cellColor(winPct, games);
+                const bg = cellColor(games, wins, losses);
                 return (
                   <td
                     key={col.owner_id}
@@ -101,9 +100,12 @@ export function HeadToHeadMatrix() {
         </tbody>
       </table>
       <p className="text-[10px] text-ink-faint mt-3">
-        Read row vs column. Cell color: green = winning record, red = losing
-        record, intensity scales with number of games. Click any cell to see
-        every game between that pair.
+        Read row vs column. Cell color:{" "}
+        <span className="text-accent-green">green</span> = winning record,{" "}
+        <span className="text-accent-red">red</span> = losing record,{" "}
+        <span className="text-accent-gold">yellow</span> = tied series
+        (equal wins and losses). Click any cell to see every game between
+        that pair.
       </p>
     </div>
   );

@@ -203,7 +203,16 @@ export default async function SeasonPage({ params }: PageProps) {
 
       <Card
         title="Weekly Heatmap"
-        subtitle="Owner × week, colored by score"
+        subtitle={
+          <>
+            Each row is an owner and each column is a week of the season.
+            Cell color runs cool to warm by points scored, so the hottest
+            cells are the highest single-week totals of the year.
+            A <span className="text-accent-green">green outline</span> marks
+            a win that week and a <span className="text-accent-red">red outline</span>{" "}
+            marks a loss. Rows are sorted top-to-bottom by final standing.
+          </>
+        }
         info={STAT_DEFS.weeklyHeatmap}
       >
         <WeeklyHeatmap standings={season.standings} />

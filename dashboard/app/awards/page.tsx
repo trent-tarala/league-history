@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/Card";
 import { OwnerLink } from "@/components/OwnerLink";
-import { Trophy } from "@/components/Trophy";
 import { InfoIcon } from "@/components/InfoIcon";
 import { getSeasonChampions } from "@/lib/aggregations";
 import { getBiggestImprovements } from "@/lib/streaks";
@@ -165,64 +164,66 @@ export default function AwardsPage() {
               third={s.third}
               sacko={s.sacko}
             />
-            <ul className="text-sm space-y-2">
-              <Award label="Reg-season title" info={STAT_DEFS.regularSeasonTitle}>
-                {ownerCellOrDash(s.regularSeasonLeader)}
-              </Award>
-              <Award label="Points leader" info={STAT_DEFS.pointsLeader}>
-                {ownerCellOrDash(
-                  s.pointsLeader,
-                  s.pointsLeader ? `(${fmtNum(s.pointsLeader.points_for)})` : undefined
-                )}
-              </Award>
-              <Award label="Most screwed (PA leader)" info={STAT_DEFS.mostScrewed}>
-                {ownerCellOrDash(
-                  s.pointsAgainstLeader,
-                  s.pointsAgainstLeader
-                    ? `(${fmtNum(s.pointsAgainstLeader.points_against)})`
-                    : undefined
-                )}
-              </Award>
-              <Award label="Highest single week" info={STAT_DEFS.highestWeek}>
-                {s.highestWeek ? (
-                  <span>
-                    <OwnerLink ownerId={s.highestWeek.ownerId} name={s.highestWeek.ownerName} />
-                    <span className="text-ink-faint">
-                      {" "}
-                      • {fmtNum(s.highestWeek.score)} • W{s.highestWeek.week}
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-white/5">
+                <Award label="Reg-season title" info={STAT_DEFS.regularSeasonTitle}>
+                  {ownerCellOrDash(s.regularSeasonLeader)}
+                </Award>
+                <Award label="Points leader" info={STAT_DEFS.pointsLeader}>
+                  {ownerCellOrDash(
+                    s.pointsLeader,
+                    s.pointsLeader ? `(${fmtNum(s.pointsLeader.points_for)})` : undefined
+                  )}
+                </Award>
+                <Award label="Most screwed (PA leader)" info={STAT_DEFS.mostScrewed}>
+                  {ownerCellOrDash(
+                    s.pointsAgainstLeader,
+                    s.pointsAgainstLeader
+                      ? `(${fmtNum(s.pointsAgainstLeader.points_against)})`
+                      : undefined
+                  )}
+                </Award>
+                <Award label="Highest single week" info={STAT_DEFS.highestWeek}>
+                  {s.highestWeek ? (
+                    <span>
+                      <OwnerLink ownerId={s.highestWeek.ownerId} name={s.highestWeek.ownerName} />
+                      <span className="text-ink-faint">
+                        {" "}
+                        • {fmtNum(s.highestWeek.score)} • W{s.highestWeek.week}
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </Award>
-              <Award label="Most consistent" info={STAT_DEFS.mostConsistent}>
-                {s.mostConsistent ? (
-                  <span>
-                    <OwnerLink ownerId={s.mostConsistent.row.owner_id} name={s.mostConsistent.row.owner} />
-                    <span className="text-ink-faint">
-                      {" "}
-                      • σ {fmtNum(s.mostConsistent.stdDev)}
+                  ) : (
+                    "—"
+                  )}
+                </Award>
+                <Award label="Most consistent" info={STAT_DEFS.mostConsistent}>
+                  {s.mostConsistent ? (
+                    <span>
+                      <OwnerLink ownerId={s.mostConsistent.row.owner_id} name={s.mostConsistent.row.owner} />
+                      <span className="text-ink-faint">
+                        {" "}
+                        • σ {fmtNum(s.mostConsistent.stdDev)}
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </Award>
-              <Award label="Most volatile" info={STAT_DEFS.mostVolatile}>
-                {s.mostVolatile ? (
-                  <span>
-                    <OwnerLink ownerId={s.mostVolatile.row.owner_id} name={s.mostVolatile.row.owner} />
-                    <span className="text-ink-faint">
-                      {" "}
-                      • σ {fmtNum(s.mostVolatile.stdDev)}
+                  ) : (
+                    "—"
+                  )}
+                </Award>
+                <Award label="Most volatile" info={STAT_DEFS.mostVolatile}>
+                  {s.mostVolatile ? (
+                    <span>
+                      <OwnerLink ownerId={s.mostVolatile.row.owner_id} name={s.mostVolatile.row.owner} />
+                      <span className="text-ink-faint">
+                        {" "}
+                        • σ {fmtNum(s.mostVolatile.stdDev)}
+                      </span>
                     </span>
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </Award>
-            </ul>
+                  ) : (
+                    "—"
+                  )}
+                </Award>
+              </tbody>
+            </table>
           </Card>
         ))}
       </div>
@@ -258,29 +259,25 @@ export default function AwardsPage() {
 
 function Award({
   label,
-  tier,
   info,
   children,
 }: {
   label: string;
-  tier?: "gold" | "silver" | "bronze" | "sacko";
   info?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <li className="flex items-baseline gap-2">
-      {tier ? (
+    <tr>
+      <th
+        scope="row"
+        className="text-left text-[10px] font-medium uppercase tracking-wider text-ink-faint py-2 pr-4 align-top whitespace-normal"
+      >
         <span className="inline-flex items-center">
-          <Trophy label={label} tier={tier} />
-          {info && <InfoIcon label={info} />}
-        </span>
-      ) : (
-        <span className="text-[10px] uppercase tracking-wider text-ink-faint w-32 inline-flex items-center">
           {label}
           {info && <InfoIcon label={info} />}
         </span>
-      )}
-      <span className="ml-auto text-right">{children}</span>
-    </li>
+      </th>
+      <td className="py-2 text-right align-top">{children}</td>
+    </tr>
   );
 }

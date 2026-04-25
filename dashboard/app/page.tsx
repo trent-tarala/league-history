@@ -5,6 +5,7 @@ import { StatTable, type Column } from "@/components/StatTable";
 import { Trophy } from "@/components/Trophy";
 import { Badge } from "@/components/Badge";
 import { LineChart } from "@/components/Charts";
+import { DailyFact, type DailyFactItem } from "@/components/DailyFact";
 import {
   avgScorePerYear,
   getCareerProfiles,
@@ -93,14 +94,11 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
+      <h1 className="text-3xl font-semibold tracking-tight">League History</h1>
+
+      <DailyFact facts={buildDailyFacts(records)} />
+
       <section className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">League History</h1>
-          <p className="text-ink-dim text-sm max-w-2xl">
-            {champions.length} seasons of fantasy football. {profiles.length} owners.{" "}
-            {fmtInt(games)} games played. {fmtInt(points)} points scored.
-          </p>
-        </div>
         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
           <StatTile
             label="Seasons"
@@ -355,4 +353,111 @@ function SectionLink({ href, title, subtitle }: { href: string; title: string; s
       <div className="text-xs text-ink-dim mt-1">{subtitle}</div>
     </Link>
   );
+}
+
+// Build the rotating "Did You Know?" pool from the #1 entry of each "bad"
+// record category. Order doesn't matter for picking, but we keep it stable
+// so the modulo-by-day rotation is deterministic across builds.
+function buildDailyFacts(
+  records: ReturnType<typeof getMatchupRecords>
+): DailyFactItem[] {
+  const facts: DailyFactItem[] = [];
+
+  const lowest = records.lowestScore[0];
+  if (lowest) {
+    facts.push({
+      id: "lowest_score",
+      headline: "Worst single week ever",
+      body: (
+        <>
+          <OwnerLink ownerId={lowest.ownerId} name={lowest.ownerName} /> put up
+          just <strong className="text-ink">{fmtNum(lowest.score)}</strong>{" "}
+          points in {lowest.year} W{lowest.week}. The whole week. Their
+          opponent didn&apos;t exactly need to break a sweat.
+        </>
+      ),
+    });
+  }
+
+  const blowout = records.biggestBlowout[0];
+  if (blowout) {
+    const winnerIsHome = blowout.homeScore > blowout.awayScore;
+    const winnerId = winnerIsHome ? blowout.homeOwnerId : blowout.awayOwnerId;
+    const winnerName = winnerIsHome ? blowout.homeOwnerName : blowout.awayOwnerName;
+    const loserId = winnerIsHome ? blowout.awayOwnerId : blowout.homeOwnerId;
+    const loserName = winnerIsHome ? blowout.awayOwnerName : blowout.homeOwnerName;
+    const winScore = Math.max(blowout.homeScore, blowout.awayScore);
+    const loseScore = Math.min(blowout.homeScore, blowout.awayScore);
+    facts.push({
+      id: "biggest_blowout",
+      headline: "Most lopsided game ever",
+      body: (
+        <>
+          <OwnerLink ownerId={winnerId} name={winnerName} /> beat{" "}
+          <OwnerLink ownerId={loserId} name={loserName} />{" "}
+          <strong className="text-ink">
+            {fmtNum(winScore)} – {fmtNum(loseScore)}
+          </strong>{" "}
+          in {blowout.year} W{blowout.week}. A {fmtNum(blowout.margin)}-point
+          margin. That&apos;s not a fantasy game, that&apos;s an assault charge.
+        </>
+      ),
+    });
+  }
+
+  const lowCombined = records.lowestCombined[0];
+  if (lowCombined) {
+    facts.push({
+      id: "lowest_combined",
+      headline: "Most boring game ever",
+      body: (
+        <>
+          <OwnerLink ownerId={lowCombined.homeOwnerId} name={lowCombined.homeOwnerName} />{" "}
+          and{" "}
+          <OwnerLink ownerId={lowCombined.awayOwnerId} name={lowCombined.awayOwnerName} />{" "}
+          combined for just{" "}
+          <strong className="text-ink">{fmtNum(lowCombined.combined)}</strong>{" "}
+          points in {lowCombined.year} W{lowCombined.week}. Two starting QBs
+          would&apos;ve outscored the entire matchup.
+        </>
+      ),
+    });
+  }
+
+  const cursed = records.cursedLoss[0];
+  if (cursed) {
+    facts.push({
+      id: "cursed_loss",
+      headline: "Cruelest loss ever",
+      body: (
+        <>
+          <OwnerLink ownerId={cursed.ownerId} name={cursed.ownerName} /> dropped{" "}
+          <strong className="text-ink">{fmtNum(cursed.score)}</strong> points in{" "}
+          {cursed.year} W{cursed.week} — and lost. The opponent put up{" "}
+          {fmtNum(cursed.opponentScore)}. The fantasy gods do not care about
+          you.
+        </>
+      ),
+    });
+  }
+
+  const lucky = records.luckyWin[0];
+  if (lucky) {
+    facts.push({
+      id: "lucky_win",
+      headline: "Luckiest win ever",
+      body: (
+        <>
+          <OwnerLink ownerId={lucky.ownerId} name={lucky.ownerName} /> backed
+          into a W with just{" "}
+          <strong className="text-ink">{fmtNum(lucky.score)}</strong> points in{" "}
+          {lucky.year} W{lucky.week}. Their opponent managed only{" "}
+          {fmtNum(lucky.opponentScore)}. The bar was on the floor; somehow
+          they still tripped on it.
+        </>
+      ),
+    });
+  }
+
+  return facts;
 }

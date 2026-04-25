@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Card, StatTile } from "@/components/Card";
 import { OwnerSwatch } from "@/components/OwnerLink";
 import { StatTable, type Column } from "@/components/StatTable";
 import { Trophy } from "@/components/Trophy";
-import { Badge } from "@/components/Badge";
 import { LineChart } from "@/components/Charts";
 import {
   getCareerProfile,
@@ -69,11 +69,6 @@ export default async function OwnerPage({ params }: PageProps) {
       </Link>
     ) },
     { key: "team", header: "Team", render: (r) => r.row.team_name ?? "—" },
-    {
-      key: "div",
-      header: "Division",
-      render: (r) => r.row.division ?? <span className="text-ink-faint">—</span>,
-    },
     {
       key: "rec",
       header: "Record",
@@ -143,7 +138,7 @@ export default async function OwnerPage({ params }: PageProps) {
       };
     })
     .filter((x): x is H2HRow => x !== null)
-    .sort((a, b) => b.games - a.games);
+    .sort((a, b) => b.winPct - a.winPct || b.games - a.games);
 
   const h2hCols: Column<H2HRow>[] = [
     {
@@ -170,7 +165,15 @@ export default async function OwnerPage({ params }: PageProps) {
       header: "Win %",
       info: STAT_DEFS.h2hWinPct,
       align: "right",
-      render: (r) => fmtPct(r.winPct),
+      render: (r) => {
+        const cls =
+          r.winPct > 0.5
+            ? "text-accent-green"
+            : r.winPct < 0.5
+              ? "text-accent-red"
+              : "text-ink-dim";
+        return <span className={`${cls} font-medium`}>{fmtPct(r.winPct)}</span>;
+      },
     },
     {
       key: "pf",
@@ -190,6 +193,12 @@ export default async function OwnerPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs
+        items={[
+          { href: "/owners/", label: "Owners" },
+          { label: owner.display_name },
+        ]}
+      />
       <header className="flex flex-wrap items-center gap-4">
         <OwnerSwatch ownerId={ownerId} name={owner.display_name} size={64} />
         <div>
@@ -319,14 +328,6 @@ export default async function OwnerPage({ params }: PageProps) {
         info={STAT_DEFS.h2hRecord}
       >
         <StatTable rows={h2hRows} columns={h2hCols} rowKey={(r) => r.opponentId} />
-      </Card>
-
-      <Card title="Team names used" subtitle="The fingerprints of every era">
-        <div className="flex flex-wrap gap-2">
-          {owner.team_names_used.map((name) => (
-            <Badge key={name}>{name}</Badge>
-          ))}
-        </div>
       </Card>
     </div>
   );
