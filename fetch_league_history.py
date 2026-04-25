@@ -18,6 +18,8 @@ import json
 import os
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +50,13 @@ DEFAULT_START_YEAR = 2019
 DEFAULT_END_YEAR = 2025
 
 OUTPUT_FILE = Path(__file__).resolve().parent / "fantasy_league_history.json"
+
+# Where downloaded owner avatars live. Path is rooted in the dashboard's
+# public/ folder so Next.js serves them as /owner-avatars/<file>.
+AVATAR_DIR = (
+    Path(__file__).resolve().parent / "dashboard" / "public" / "owner-avatars"
+)
+AVATAR_WEB_PREFIX = "/owner-avatars"
 
 
 def get_owner_name(team: Any) -> str:
@@ -137,6 +146,7 @@ def collect_standings(league: League, year: int) -> list[dict[str, Any]]:
                     or getattr(team, "standing", None)
                 ),
                 "division": getattr(team, "division_name", None),
+                "logo_url": getattr(team, "logo_url", None) or None,
                 "weekly_scores": weekly_scores,
                 "weekly_outcomes": weekly_outcomes,
                 "weekly_opponent_ids": opponent_ids,
@@ -327,6 +337,9 @@ def rebuild_owner_registry(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     even when seasons are added incrementally."""
     registry: dict[str, dict[str, Any]] = {}
     seasons = data.get("seasons", {}) or {}
+    # Track the latest year we've seen a logo URL for each owner, so the most
+    # recent season's team logo wins (acts as that owner's "profile image").
+    latest_logo_year: dict[str, int] = {}
     for year_key in sorted(seasons.keys(), key=lambda s: int(s) if s.isdigit() else 0):
         year_int = int(year_key) if year_key.isdigit() else None
         season = seasons[year_key] or {}
@@ -343,6 +356,8 @@ def rebuild_owner_registry(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
                         "last_seen_year": year_int,
                         "seasons": [],
                         "team_names_used": [],
+                        "logo_url": None,
+                        "avatar_path": None,
                     },
                 )
                 # Always prefer the most recent display name.
@@ -358,10 +373,100 @@ def rebuild_owner_registry(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
                 tn = row.get("team_name")
                 if tn and tn not in entry["team_names_used"]:
                     entry["team_names_used"].append(tn)
+                logo = row.get("logo_url")
+                if logo and year_int is not None and year_int >= latest_logo_year.get(owner_id, -1):
+                    latest_logo_year[owner_id] = year_int
+                    entry["logo_url"] = logo
     # Sort seasons numerically.
     for entry in registry.values():
         entry["seasons"] = sorted(entry["seasons"], key=int)
     return registry
+
+
+def _slug_for_owner(owner_id: str) -> str:
+    """SWID like '{ABCD-...}' -> 'abcd-...' (filesystem and URL friendly)."""
+    return owner_id.strip().lstrip("{").rstrip("}").lower()
+
+
+_CONTENT_TYPE_EXT = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",  # ESPN's mystique-api returns this non-standard type
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+    "image/svg+xml": ".svg",
+}
+
+
+def _download_avatar(url: str, dest_no_ext: Path) -> Path | None:
+    """Fetch `url` and write it to `dest_no_ext.<ext>` based on Content-Type
+    (or URL extension as a fallback). Returns the written Path on success.
+
+    Some ESPN image hosts (e.g. mystique-api.fantasy.espn.com) require the
+    league cookies; sending them on every request is harmless for hosts that
+    don't care about them."""
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 league-history-scraper/1.0",
+            "Accept": "*/*",
+            "Cookie": f"espn_s2={ESPN_S2}; SWID={SWID}",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            content_type = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            body = resp.read()
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        print(f"  - avatar download failed for {url}: {type(exc).__name__}: {exc}")
+        return None
+
+    ext = _CONTENT_TYPE_EXT.get(content_type)
+    if ext is None:
+        # Try the URL suffix as a fallback (mystique-api URLs have no suffix).
+        url_suffix = Path(url.split("?")[0]).suffix.lower()
+        if url_suffix in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}:
+            ext = ".jpg" if url_suffix == ".jpeg" else url_suffix
+        else:
+            ext = ".png"  # Most ESPN team logos are PNGs.
+
+    dest = dest_no_ext.with_suffix(ext)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(body)
+    return dest
+
+
+def download_owner_avatars(registry: dict[str, dict[str, Any]]) -> int:
+    """Download each owner's most-recent team logo into AVATAR_DIR and stamp
+    `avatar_path` (web-relative) on the registry entry. Returns the number
+    successfully downloaded this run."""
+    downloaded = 0
+    for owner_id, entry in registry.items():
+        url = entry.get("logo_url")
+        if not url:
+            entry["avatar_path"] = None
+            continue
+        slug = _slug_for_owner(owner_id)
+        dest_no_ext = AVATAR_DIR / slug
+        # If the file already exists in any image extension, reuse it instead
+        # of re-downloading on every run.
+        existing = next(
+            (
+                p
+                for p in (dest_no_ext.with_suffix(ext) for ext in _CONTENT_TYPE_EXT.values())
+                if p.exists()
+            ),
+            None,
+        )
+        if existing is None:
+            written = _download_avatar(url, dest_no_ext)
+            if written is None:
+                entry["avatar_path"] = None
+                continue
+            existing = written
+            downloaded += 1
+        entry["avatar_path"] = f"{AVATAR_WEB_PREFIX}/{existing.name}"
+    return downloaded
 
 
 def load_existing(path: Path) -> dict[str, Any]:
@@ -383,6 +488,10 @@ def save_atomic(path: Path, data: dict[str, Any]) -> None:
     # Always rebuild the owner registry from current standings before writing
     # so it stays in sync no matter how many seasons were just refreshed.
     data["owners"] = rebuild_owner_registry(data)
+    # Resolve owner avatars (latest team logo) once per save; cached on disk.
+    fresh = download_owner_avatars(data["owners"])
+    if fresh:
+        print(f"  - downloaded {fresh} new owner avatar(s) -> {AVATAR_DIR}")
     # Order the top-level keys so the file diffs nicely.
     ordered = {
         "league_id": data.get("league_id", LEAGUE_ID),

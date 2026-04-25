@@ -67,6 +67,15 @@ export function colorForOwner(id: string): string {
   return OWNER_PALETTE[hash % OWNER_PALETTE.length];
 }
 
+/** Prefix a public/ asset path with NEXT_PUBLIC_BASE_PATH (e.g. "/league-history")
+ *  when set, so static-export deploys under a subpath resolve correctly. */
+export function assetPath(p: string): string {
+  if (!p) return p;
+  const base = process.env.NEXT_PUBLIC_BASE_PATH || "";
+  const normalized = p.startsWith("/") ? p : `/${p}`;
+  return `${base}${normalized}`;
+}
+
 export const MATCHUP_TYPE_LABEL: Record<string, string> = {
   REGULAR: "Regular Season",
   WINNERS_BRACKET: "Playoffs",

@@ -7,6 +7,10 @@ export interface OwnerRegistryEntry {
   last_seen_year: number | null;
   seasons: string[];
   team_names_used: string[];
+  logo_url?: string | null;
+  /** Web-relative path to the cached avatar (e.g. "/owner-avatars/abc.png"),
+   *  not yet basePath-prefixed. */
+  avatar_path?: string | null;
 }
 
 export interface Standing {
@@ -24,6 +28,7 @@ export interface Standing {
   points_against: number;
   final_standing: number | null;
   division: string | null;
+  logo_url?: string | null;
   weekly_scores: number[];
   weekly_outcomes: string[];
   weekly_opponent_ids: (number | null)[];
