@@ -18,7 +18,7 @@ export function Card({ title, subtitle, info, className, children, actions }: Ca
       className={cn(
         "rounded-2xl border border-white/5 bg-bg-card/80 backdrop-blur",
         "shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5)]",
-        "p-5",
+        "p-5 min-w-0",
         className
       )}
     >
@@ -68,7 +68,7 @@ export function StatTile({
               ? "text-accent"
               : "text-ink";
   return (
-    <div className="rounded-xl border border-white/5 bg-bg-subtle/60 px-4 py-3 h-full flex flex-col">
+    <div className="rounded-xl border border-white/5 bg-bg-subtle/60 px-4 py-3 h-full flex flex-col min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-ink-faint">
         {label}
         {info && <InfoIcon label={info} />}

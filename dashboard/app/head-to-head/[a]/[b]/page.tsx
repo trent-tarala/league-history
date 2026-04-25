@@ -16,6 +16,8 @@ import {
   fmtRecord,
   isPlayoffMatchup,
   MATCHUP_TYPE_LABEL,
+  ownerIdFromSlug,
+  ownerSlug,
 } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
 
@@ -25,7 +27,7 @@ export function generateStaticParams() {
   for (const a of ids) {
     for (const b of ids) {
       if (a !== b) {
-        out.push({ a: encodeURIComponent(a), b: encodeURIComponent(b) });
+        out.push({ a: ownerSlug(a), b: ownerSlug(b) });
       }
     }
   }
@@ -38,8 +40,8 @@ interface PageProps {
 
 export default async function H2HPage({ params }: PageProps) {
   const { a: rawA, b: rawB } = await params;
-  const a = decodeURIComponent(rawA);
-  const b = decodeURIComponent(rawB);
+  const a = ownerIdFromSlug(rawA);
+  const b = ownerIdFromSlug(rawB);
   const ownerA = getOwner(a);
   const ownerB = getOwner(b);
   if (!ownerA || !ownerB) notFound();

@@ -217,7 +217,7 @@ export default function HomePage() {
         </div>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card
           title="All-Time Win %"
           subtitle="Top owners by career winning percentage"

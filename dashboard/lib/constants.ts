@@ -67,6 +67,24 @@ export function colorForOwner(id: string): string {
   return OWNER_PALETTE[hash % OWNER_PALETTE.length];
 }
 
+/** ESPN owner IDs are GUIDs wrapped in curly braces (e.g. "{E3A43B9F-…}").
+ *  When used directly in URLs the braces get percent-encoded to %7B/%7D. Next.js
+ *  static export then writes literal `%7B…%7D` directory names, but most static
+ *  hosts (GitHub Pages included) decode the URL before file lookup, so they hunt
+ *  for `{…}` directories that don't exist and serve a 404. Stripping the braces
+ *  yields a hex-and-hyphen-only slug that is URL-safe end-to-end. */
+export function ownerSlug(ownerId: string): string {
+  return ownerId.replace(/[{}]/g, "");
+}
+
+/** Inverse of `ownerSlug`. Restores the curly-brace form so we can look up the
+ *  owner in the registry, which is keyed by the original ESPN id. */
+export function ownerIdFromSlug(slug: string): string {
+  const decoded = decodeURIComponent(slug);
+  if (decoded.startsWith("{") && decoded.endsWith("}")) return decoded;
+  return `{${decoded}}`;
+}
+
 /** Prefix a public/ asset path with NEXT_PUBLIC_BASE_PATH (e.g. "/league-history")
  *  when set, so static-export deploys under a subpath resolve correctly. */
 export function assetPath(p: string): string {

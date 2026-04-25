@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { getOwners } from "@/lib/data";
 import { getH2HCell } from "@/lib/aggregations";
-import { fmtPct } from "@/lib/constants";
+import { fmtPct, ownerSlug } from "@/lib/constants";
 
 function cellColor(games: number, wins: number, losses: number): string {
   if (games === 0) return "transparent";
@@ -17,12 +17,12 @@ function cellColor(games: number, wins: number, losses: number): string {
 export function HeadToHeadMatrix() {
   const owners = getOwners();
   return (
-    <div className="overflow-x-auto pr-20">
-      <table className="w-full table-fixed text-xs border-separate border-spacing-0.5">
+    <div className="overflow-x-auto min-w-0 -mx-3">
+      <table className="w-full table-fixed text-xs border-separate border-spacing-0.5 min-w-[860px]">
         <colgroup>
-          <col className="w-[140px]" />
+          <col className="w-[120px]" />
           {owners.map((o) => (
-            <col key={o.owner_id} />
+            <col key={o.owner_id} className="w-[56px]" />
           ))}
         </colgroup>
         <thead>
@@ -77,7 +77,7 @@ export function HeadToHeadMatrix() {
                   >
                     {games > 0 ? (
                       <Link
-                        href={`/head-to-head/${encodeURIComponent(row.owner_id)}/${encodeURIComponent(col.owner_id)}/`}
+                        href={`/head-to-head/${ownerSlug(row.owner_id)}/${ownerSlug(col.owner_id)}/`}
                         className="block w-full h-full flex flex-col items-center justify-center text-ink no-underline hover:text-accent hover:no-underline"
                         title={`${row.display_name} vs ${col.display_name}: ${wins}-${losses}${ties > 0 ? `-${ties}` : ""} (${fmtPct(winPct)})`}
                       >

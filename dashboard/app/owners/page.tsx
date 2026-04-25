@@ -3,7 +3,7 @@ import { Card } from "@/components/Card";
 import { OwnerSwatch } from "@/components/OwnerLink";
 import { Badge } from "@/components/Badge";
 import { getCareerProfiles } from "@/lib/aggregations";
-import { fmtPct, fmtRecord } from "@/lib/constants";
+import { fmtPct, fmtRecord, ownerSlug } from "@/lib/constants";
 
 export default function OwnersPage() {
   const profiles = Array.from(getCareerProfiles().values()).sort(
@@ -23,7 +23,7 @@ export default function OwnersPage() {
         {profiles.map((p) => (
           <Link
             key={p.owner.owner_id}
-            href={`/owners/${encodeURIComponent(p.owner.owner_id)}/`}
+            href={`/owners/${ownerSlug(p.owner.owner_id)}/`}
             className="block rounded-xl border border-white/5 bg-bg-card/70 p-4 hover:border-white/10 hover:bg-bg-card transition no-underline hover:no-underline"
           >
             <div className="flex items-center gap-3">

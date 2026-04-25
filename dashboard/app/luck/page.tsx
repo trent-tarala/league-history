@@ -212,7 +212,7 @@ export default function LuckPage() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card
           title="Luckiest Seasons"
           subtitle="Scored worse than most of the league, but happened to draw the few teams scoring even worse week after week. Padded their actual record on cupcake matchups."

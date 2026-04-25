@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Card } from "@/components/Card";
 import { OwnerLink } from "@/components/OwnerLink";
-import { Trophy } from "@/components/Trophy";
 import { getSeasonChampions } from "@/lib/aggregations";
 import { fmtNum } from "@/lib/constants";
 
@@ -15,17 +13,14 @@ export default function SeasonsIndexPage() {
           Pick a season for the full standings, weekly heatmap, matchup log, and draft board.
         </p>
       </header>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {champs.map((c) => (
           <Link
             key={c.year}
             href={`/seasons/${c.year}/`}
             className="block rounded-2xl border border-white/5 bg-bg-card/70 p-5 hover:border-white/10 hover:bg-bg-card no-underline hover:no-underline"
           >
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-semibold text-ink">{c.year}</div>
-              {c.champion && <Trophy label="Champ" tier="gold" />}
-            </div>
+            <div className="text-2xl font-semibold text-ink">{c.year}</div>
             {c.champion && (
               <div className="text-sm text-ink-dim mt-3">
                 Champion:{" "}

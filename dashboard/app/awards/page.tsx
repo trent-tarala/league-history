@@ -4,7 +4,7 @@ import { OwnerLink } from "@/components/OwnerLink";
 import { InfoIcon } from "@/components/InfoIcon";
 import { getSeasonChampions } from "@/lib/aggregations";
 import { getBiggestImprovements } from "@/lib/streaks";
-import { fmtNum, fmtPct } from "@/lib/constants";
+import { fmtNum, fmtPct, ownerSlug } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
 import type { Standing } from "@/lib/types";
 
@@ -112,7 +112,7 @@ function PodiumPyramid({
             {layer.owner ? (
               layer.owner.owner_id ? (
                 <Link
-                  href={`/owners/${encodeURIComponent(layer.owner.owner_id)}/`}
+                  href={`/owners/${ownerSlug(layer.owner.owner_id)}/`}
                   className="no-underline hover:underline"
                   style={{ color: "inherit" }}
                 >
@@ -145,7 +145,7 @@ export default function AwardsPage() {
         </p>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         {seasons.map((s) => (
           <Card
             key={s.year}

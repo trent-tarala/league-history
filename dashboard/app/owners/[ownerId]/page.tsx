@@ -18,12 +18,14 @@ import {
   fmtPct,
   fmtRecord,
   ordinal,
+  ownerIdFromSlug,
+  ownerSlug,
 } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
 import type { Standing } from "@/lib/types";
 
 export function generateStaticParams() {
-  return getOwnerIds().map((id) => ({ ownerId: encodeURIComponent(id) }));
+  return getOwnerIds().map((id) => ({ ownerId: ownerSlug(id) }));
 }
 
 interface PageProps {
@@ -32,7 +34,7 @@ interface PageProps {
 
 export default async function OwnerPage({ params }: PageProps) {
   const { ownerId: rawId } = await params;
-  const ownerId = decodeURIComponent(rawId);
+  const ownerId = ownerIdFromSlug(rawId);
   const owner = getOwner(ownerId);
   const profile = getCareerProfile(ownerId);
   if (!owner || !profile) notFound();
@@ -146,7 +148,7 @@ export default async function OwnerPage({ params }: PageProps) {
       header: "Opponent",
       render: (r) => (
         <Link
-          href={`/head-to-head/${encodeURIComponent(ownerId)}/${encodeURIComponent(r.opponentId)}/`}
+          href={`/head-to-head/${ownerSlug(ownerId)}/${ownerSlug(r.opponentId)}/`}
           className="text-ink no-underline hover:text-accent"
         >
           {r.opponentName}

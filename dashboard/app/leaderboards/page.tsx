@@ -69,7 +69,7 @@ export default function LeaderboardsPage() {
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card title="Win Percentage" subtitle="Career W-L-T as a fraction">
           <StatTable
             rows={byWinPct}

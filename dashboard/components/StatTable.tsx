@@ -33,7 +33,7 @@ export function StatTable<T>({
     return <div className="text-sm text-ink-dim py-3">{emptyMessage}</div>;
   }
   return (
-    <div className="overflow-x-auto -mx-2">
+    <div className="overflow-x-auto -mx-2 min-w-0">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/5">

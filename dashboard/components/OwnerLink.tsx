@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { assetPath, colorForOwner, initials } from "@/lib/constants";
+import { assetPath, colorForOwner, initials, ownerSlug } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { getOwner } from "@/lib/data";
 
@@ -21,7 +21,7 @@ export function OwnerLink({
   if (!ownerId) {
     return <span className="text-ink-dim">{name}</span>;
   }
-  const href = `/owners/${encodeURIComponent(ownerId)}/`;
+  const href = `/owners/${ownerSlug(ownerId)}/`;
   return (
     <Link
       href={href}

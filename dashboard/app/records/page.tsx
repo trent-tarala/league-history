@@ -143,7 +143,7 @@ function recordSection(label: "all" | "regular" | "playoff", title: string) {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-ink">{title}</h2>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <Card title="Highest Single-Week Score" info={STAT_DEFS.highestScore}>
           <StatTable rows={r.highestScore as SideRecord[]} columns={sideCols("Score")} compact />
         </Card>

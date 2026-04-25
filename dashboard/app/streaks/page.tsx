@@ -97,7 +97,7 @@ export default function StreaksPage() {
           are highlighted.
         </p>
       </header>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card title="Longest Winning Streaks" info={STAT_DEFS.winStreak}>
           <StatTable rows={wins} columns={streakCols} rowKey={(s) => `${s.ownerId}-${s.length}-${s.startYear}`} />
         </Card>
