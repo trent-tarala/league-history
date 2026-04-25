@@ -18,6 +18,7 @@ import {
   MATCHUP_TYPE_LABEL,
   ownerIdFromSlug,
   ownerSlug,
+  winPctAccent,
 } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
 
@@ -151,7 +152,7 @@ export default async function H2HPage({ params }: PageProps) {
         <StatTile
           label="Win %"
           value={cellAB ? fmtPct(cellAB.winPct) : "—"}
-          accent="green"
+          accent={cellAB ? winPctAccent(cellAB.winPct) : undefined}
           hint={
             ownerA.display_name.toLowerCase() === "sam reese" &&
             ownerB.display_name.toLowerCase() === "trent tarala" ? (

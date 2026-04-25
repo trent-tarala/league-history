@@ -83,6 +83,22 @@ const playoffCols: Column<PlayoffStreak>[] = [
   },
 ];
 
+const playoffAppearanceCols: Column<PlayoffStreak>[] = playoffCols.map((col) =>
+  col.key === "owner"
+    ? {
+        ...col,
+        render: (s: PlayoffStreak) => (
+          <span className="inline-flex items-baseline gap-1.5">
+            <OwnerLink ownerId={s.ownerId} name={s.ownerName} />
+            {s.ownerName.toLowerCase() === "jake younts" && (
+              <span className="text-xs text-ink-dim italic">all luck</span>
+            )}
+          </span>
+        ),
+      }
+    : col
+);
+
 export default function StreaksPage() {
   const wins = getLongestStreaks("W");
   const losses = getLongestStreaks("L");
@@ -105,7 +121,7 @@ export default function StreaksPage() {
           <StatTable rows={losses} columns={streakCols} rowKey={(s) => `${s.ownerId}-${s.length}-${s.startYear}`} />
         </Card>
         <Card title="Longest Playoff Appearance Streaks" info={STAT_DEFS.playoffStreak}>
-          <StatTable rows={playoffApp} columns={playoffCols} rowKey={(s) => `${s.ownerId}-${s.length}-${s.startYear}`} />
+          <StatTable rows={playoffApp} columns={playoffAppearanceCols} rowKey={(s) => `${s.ownerId}-${s.length}-${s.startYear}`} />
         </Card>
         <Card title="Longest Playoff Droughts" info={STAT_DEFS.playoffDrought}>
           <StatTable rows={droughts} columns={playoffCols} rowKey={(s) => `${s.ownerId}-${s.length}-${s.startYear}`} />

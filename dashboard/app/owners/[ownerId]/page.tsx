@@ -20,6 +20,7 @@ import {
   ordinal,
   ownerIdFromSlug,
   ownerSlug,
+  winPctAccent,
 } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
 import type { Standing } from "@/lib/types";
@@ -207,6 +208,9 @@ export default async function OwnerPage({ params }: PageProps) {
           <h1 className="text-2xl font-semibold">{owner.display_name}</h1>
           <p className="text-ink-dim text-sm">
             {owner.first_seen_year}–{owner.last_seen_year} • {owner.seasons.length} seasons
+            {owner.display_name.toLowerCase() === "poom romero" && (
+              <span className="italic">{" "}&ldquo;The Enigma&rdquo;</span>
+            )}
           </p>
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
@@ -234,7 +238,7 @@ export default async function OwnerPage({ params }: PageProps) {
         <StatTile
           label="Win %"
           value={fmtPct(profile.winPct)}
-          accent="green"
+          accent={winPctAccent(profile.winPct)}
           info={STAT_DEFS.winPct}
         />
         <StatTile
@@ -267,6 +271,11 @@ export default async function OwnerPage({ params }: PageProps) {
           label="Championships"
           value={profile.championships}
           accent="gold"
+          hint={
+            owner.display_name.toLowerCase() === "kyle kowalczyk" ? (
+              <span className="italic">no surprise</span>
+            ) : undefined
+          }
           info={STAT_DEFS.championship}
         />
         <StatTile
@@ -311,6 +320,9 @@ export default async function OwnerPage({ params }: PageProps) {
           columns={yearCols}
           rowKey={(r) => String(r.year)}
         />
+        {owner.display_name.toLowerCase() === "justin onorato" && (
+          <p className="text-xs text-ink-dim italic mt-3">yikes</p>
+        )}
       </Card>
 
       <Card title="Weekly Scores" subtitle="Every game across every season">

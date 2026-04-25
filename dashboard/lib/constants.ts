@@ -112,3 +112,13 @@ export function isConsolationMatchup(matchupType: string): boolean {
     matchupType === "LOSERS_CONSOLATION_LADDER"
   );
 }
+
+/** Map a win percentage (0..1) to a StatTile accent: green if winning,
+ *  red if losing, dim/grey at exactly 50%. */
+export function winPctAccent(
+  winPct: number
+): "green" | "red" | "dim" {
+  if (winPct > 0.5) return "green";
+  if (winPct < 0.5) return "red";
+  return "dim";
+}

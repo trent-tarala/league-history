@@ -51,7 +51,7 @@ export function StatTile({
   label: string;
   value: ReactNode;
   hint?: ReactNode;
-  accent?: "gold" | "green" | "red" | "blue" | "purple";
+  accent?: "gold" | "green" | "red" | "blue" | "purple" | "dim";
   /** Optional tooltip body shown next to the label. */
   info?: ReactNode;
 }) {
@@ -66,7 +66,9 @@ export function StatTile({
             ? "text-accent-blue"
             : accent === "purple"
               ? "text-accent"
-              : "text-ink";
+              : accent === "dim"
+                ? "text-ink-dim"
+                : "text-ink";
   return (
     <div className="rounded-xl border border-white/5 bg-bg-subtle/60 px-4 py-3 h-full flex flex-col min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-ink-faint">
