@@ -95,13 +95,17 @@ function PodiumPyramid({
             </div>
             <div className="text-sm font-semibold mt-0.5">
               {layer.owner ? (
-                <Link
-                  href={`/owners/${encodeURIComponent(layer.owner.owner_id)}/`}
-                  className="no-underline hover:underline"
-                  style={{ color: "inherit" }}
-                >
-                  {layer.owner.owner}
-                </Link>
+                layer.owner.owner_id ? (
+                  <Link
+                    href={`/owners/${encodeURIComponent(layer.owner.owner_id)}/`}
+                    className="no-underline hover:underline"
+                    style={{ color: "inherit" }}
+                  >
+                    {layer.owner.owner}
+                  </Link>
+                ) : (
+                  <span>{layer.owner.owner}</span>
+                )
               ) : (
                 "—"
               )}
