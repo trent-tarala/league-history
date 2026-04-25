@@ -57,75 +57,84 @@ export function Nav() {
   }, [open]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/5 bg-bg/85 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-4">
-        <Link
-          href="/"
-          className="font-semibold tracking-tight text-ink no-underline hover:no-underline"
-        >
-          <span className="text-accent">FF</span> League History
-        </Link>
-
-        <nav className="hidden lg:flex flex-wrap gap-1 text-sm ml-auto">
-          {NAV_LINKS.map((link) => {
-            const active = isActive(link.href, pathname);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  linkBase,
-                  "px-3 py-1.5",
-                  active ? linkActive : linkInactive
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open navigation menu"
-          aria-expanded={open}
-          className="lg:hidden ml-auto inline-flex items-center justify-center w-10 h-10 rounded-lg text-ink hover:bg-white/5"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+    <>
+      <header className="sticky top-0 z-30 border-b border-white/5 bg-bg/85 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
+          <Link
+            href="/"
+            className="font-semibold tracking-tight text-ink no-underline hover:no-underline"
           >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-      </div>
+            Venice Idiots
+          </Link>
 
+          <nav className="hidden lg:flex flex-wrap gap-1 text-sm ml-auto">
+            {NAV_LINKS.map((link) => {
+              const active = isActive(link.href, pathname);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    linkBase,
+                    "px-3 py-1.5",
+                    active ? linkActive : linkInactive
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={open}
+            className="lg:hidden ml-auto inline-flex items-center justify-center w-10 h-10 rounded-lg text-ink hover:bg-white/5"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/*
+        IMPORTANT: this overlay must NOT be a descendant of the sticky header
+        above. The header has `backdrop-blur` (a backdrop-filter), which creates
+        a containing block for `position: fixed` children — that would clip the
+        overlay to the header's box on mobile. Rendering it as a sibling lets
+        `fixed inset-0` actually fill the viewport.
+      */}
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-bg flex flex-col lg:hidden"
+          className="fixed inset-0 z-50 bg-bg flex flex-col lg:hidden h-[100dvh]"
           role="dialog"
           aria-modal="true"
           aria-label="Site navigation"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+          <div className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-white/5 shrink-0">
             <Link
               href="/"
               onClick={() => setOpen(false)}
               className="font-semibold tracking-tight text-ink no-underline hover:no-underline"
             >
-              <span className="text-accent">FF</span> League History
+              Venice Idiots
             </Link>
             <button
               type="button"
@@ -151,7 +160,7 @@ export function Nav() {
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-1.5">
+          <nav className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-6 flex flex-col gap-1.5">
             {NAV_LINKS.map((link) => {
               const active = isActive(link.href, pathname);
               return (
@@ -173,6 +182,6 @@ export function Nav() {
           </nav>
         </div>
       )}
-    </header>
+    </>
   );
 }
