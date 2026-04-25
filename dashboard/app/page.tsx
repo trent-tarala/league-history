@@ -15,7 +15,8 @@ import {
   totalPointsScored,
   type CareerProfile,
 } from "@/lib/aggregations";
-import { getSeason, getYears } from "@/lib/data";
+import { getSeason, getStandingsByYear, getYears } from "@/lib/data";
+import type { Standing } from "@/lib/types";
 import {
   fmtInt,
   fmtNum,
@@ -96,7 +97,7 @@ export default function HomePage() {
     <div className="space-y-8">
       <h1 className="text-3xl font-semibold tracking-tight">League History</h1>
 
-      <DailyFact facts={buildDailyFacts(records)} />
+      <DailyFact facts={buildDailyFacts(records, profiles, getStandingsByYear())} />
 
       <section className="space-y-4">
         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -355,15 +356,36 @@ function SectionLink({ href, title, subtitle }: { href: string; title: string; s
   );
 }
 
-// Build the rotating "Did You Know?" pool from the #1 entry of each "bad"
-// record category. Order doesn't matter for picking, but we keep it stable
-// so the modulo-by-day rotation is deterministic across builds.
+// Trent stays off the wall of shame. Match by display name (no other owner
+// has "trent" in theirs) so we don't have to hardcode an owner_id.
+function isTrent(name: string | null | undefined): boolean {
+  return !!name && name.toLowerCase().includes("trent");
+}
+
+// Find the first item in a sorted list whose referenced owner names don't
+// include Trent. Used to skip past Trent-involved entries when picking the
+// "headline" record from a top-N list.
+function firstWithoutTrent<T>(
+  items: T[],
+  getNames: (item: T) => (string | null | undefined)[]
+): T | undefined {
+  return items.find((item) => !getNames(item).some(isTrent));
+}
+
+// Build the rotating "Did You Know?" pool. Each entry roasts whoever holds
+// the #1 (worst) spot in some category, skipping Trent. Order doesn't matter
+// for picking, but we keep it stable so the modulo-by-day rotation is
+// deterministic across builds.
 function buildDailyFacts(
-  records: ReturnType<typeof getMatchupRecords>
+  records: ReturnType<typeof getMatchupRecords>,
+  profiles: CareerProfile[],
+  standingsByYear: Map<string, Standing[]>
 ): DailyFactItem[] {
   const facts: DailyFactItem[] = [];
 
-  const lowest = records.lowestScore[0];
+  // ---------- Single-game roasts ----------
+
+  const lowest = firstWithoutTrent(records.lowestScore, (s) => [s.ownerName]);
   if (lowest) {
     facts.push({
       id: "lowest_score",
@@ -379,7 +401,10 @@ function buildDailyFacts(
     });
   }
 
-  const blowout = records.biggestBlowout[0];
+  const blowout = firstWithoutTrent(records.biggestBlowout, (b) => [
+    b.homeOwnerName,
+    b.awayOwnerName,
+  ]);
   if (blowout) {
     const winnerIsHome = blowout.homeScore > blowout.awayScore;
     const winnerId = winnerIsHome ? blowout.homeOwnerId : blowout.awayOwnerId;
@@ -405,7 +430,10 @@ function buildDailyFacts(
     });
   }
 
-  const lowCombined = records.lowestCombined[0];
+  const lowCombined = firstWithoutTrent(records.lowestCombined, (r) => [
+    r.homeOwnerName,
+    r.awayOwnerName,
+  ]);
   if (lowCombined) {
     facts.push({
       id: "lowest_combined",
@@ -424,7 +452,7 @@ function buildDailyFacts(
     });
   }
 
-  const cursed = records.cursedLoss[0];
+  const cursed = firstWithoutTrent(records.cursedLoss, (s) => [s.ownerName]);
   if (cursed) {
     facts.push({
       id: "cursed_loss",
@@ -441,7 +469,7 @@ function buildDailyFacts(
     });
   }
 
-  const lucky = records.luckyWin[0];
+  const lucky = firstWithoutTrent(records.luckyWin, (s) => [s.ownerName]);
   if (lucky) {
     facts.push({
       id: "lucky_win",
@@ -454,6 +482,315 @@ function buildDailyFacts(
           {lucky.year} W{lucky.week}. Their opponent managed only{" "}
           {fmtNum(lucky.opponentScore)}. The bar was on the floor; somehow
           they still tripped on it.
+        </>
+      ),
+    });
+  }
+
+  // Cruelest tiny loss (smallest non-zero margin) — told from the loser's POV.
+  const heartbreak = firstWithoutTrent(
+    records.closestGame.filter((g) => g.margin > 0),
+    (g) => [g.homeScore < g.awayScore ? g.homeOwnerName : g.awayOwnerName]
+  );
+  if (heartbreak) {
+    const loserIsHome = heartbreak.homeScore < heartbreak.awayScore;
+    const loserId = loserIsHome ? heartbreak.homeOwnerId : heartbreak.awayOwnerId;
+    const loserName = loserIsHome ? heartbreak.homeOwnerName : heartbreak.awayOwnerName;
+    const winnerId = loserIsHome ? heartbreak.awayOwnerId : heartbreak.homeOwnerId;
+    const winnerName = loserIsHome ? heartbreak.awayOwnerName : heartbreak.homeOwnerName;
+    facts.push({
+      id: "tiniest_loss",
+      headline: "Cruelest tiny loss",
+      body: (
+        <>
+          <OwnerLink ownerId={loserId} name={loserName} /> lost to{" "}
+          <OwnerLink ownerId={winnerId} name={winnerName} /> by{" "}
+          <strong className="text-ink">{fmtNum(heartbreak.margin)}</strong>{" "}
+          points in {heartbreak.year} W{heartbreak.week}. One bench decision
+          and the season looks different. It doesn&apos;t.
+        </>
+      ),
+    });
+  }
+
+  // ---------- Career roasts ----------
+
+  // Eligible pool: real owners with games played, never Trent.
+  const careerPool = profiles.filter(
+    (p) => p.games > 0 && !isTrent(p.owner.display_name)
+  );
+
+  // Worst career win % (require ≥3 seasons so a one-off bad year doesn't win).
+  const worstWinner = [...careerPool]
+    .filter((p) => p.seasons >= 3)
+    .sort((a, b) => a.winPct - b.winPct || b.games - a.games)[0];
+  if (worstWinner) {
+    facts.push({
+      id: "worst_career_winpct",
+      headline: "League's most reliable loser",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={worstWinner.owner.owner_id}
+            name={worstWinner.owner.display_name}
+          />{" "}
+          has won just{" "}
+          <strong className="text-ink">{fmtPct(worstWinner.winPct)}</strong>{" "}
+          of their games across {worstWinner.seasons} seasons (
+          {fmtRecord(worstWinner.wins, worstWinner.losses, worstWinner.ties)}).
+          At some point you have to ask if it&apos;s the lineup or the
+          lineup-setter.
+        </>
+      ),
+    });
+  }
+
+  // Most last-place finishes — the actual league loser trophy room.
+  const mostLast = [...careerPool]
+    .filter((p) => p.lastPlaces > 0)
+    .sort((a, b) => b.lastPlaces - a.lastPlaces || b.seasons - a.seasons)[0];
+  if (mostLast) {
+    facts.push({
+      id: "most_last_place",
+      headline: "Permanent basement resident",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={mostLast.owner.owner_id}
+            name={mostLast.owner.display_name}
+          />{" "}
+          has finished dead last{" "}
+          <strong className="text-ink">
+            {mostLast.lastPlaces} {mostLast.lastPlaces === 1 ? "time" : "times"}
+          </strong>
+          . The League Loser trophy basically has their name engraved on it.
+        </>
+      ),
+    });
+  }
+
+  // Most career losses — pure volume of L's.
+  const mostLosses = [...careerPool].sort((a, b) => b.losses - a.losses)[0];
+  if (mostLosses) {
+    facts.push({
+      id: "most_career_losses",
+      headline: "Career losses leader",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={mostLosses.owner.owner_id}
+            name={mostLosses.owner.display_name}
+          />{" "}
+          has racked up{" "}
+          <strong className="text-ink">{fmtInt(mostLosses.losses)}</strong>{" "}
+          career losses — more than anyone in league history. A monument to
+          showing up.
+        </>
+      ),
+    });
+  }
+
+  // Worst career point differential (most outscored over time).
+  const worstDiff = [...careerPool].sort((a, b) => a.pointDiff - b.pointDiff)[0];
+  if (worstDiff && worstDiff.pointDiff < 0) {
+    facts.push({
+      id: "worst_point_diff",
+      headline: "Outscored by a small country",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={worstDiff.owner.owner_id}
+            name={worstDiff.owner.display_name}
+          />{" "}
+          has been outscored by opponents by{" "}
+          <strong className="text-ink">
+            {fmtNum(Math.abs(worstDiff.pointDiff))}
+          </strong>{" "}
+          points across their career. The math is unforgiving.
+        </>
+      ),
+    });
+  }
+
+  // Worst single-season record (by win rate, requires a real season).
+  let worstSeasonRow: Standing | null = null;
+  let worstSeasonYear: number | null = null;
+  let worstSeasonRate = Infinity;
+  for (const [year, standings] of standingsByYear) {
+    for (const row of standings) {
+      const games = row.wins + row.losses + row.ties;
+      if (games < 5) continue;
+      if (isTrent(row.owner)) continue;
+      const rate = (row.wins + row.ties * 0.5) / games;
+      if (
+        rate < worstSeasonRate ||
+        (rate === worstSeasonRate &&
+          worstSeasonRow != null &&
+          row.points_for < worstSeasonRow.points_for)
+      ) {
+        worstSeasonRate = rate;
+        worstSeasonRow = row;
+        worstSeasonYear = Number(year);
+      }
+    }
+  }
+  if (worstSeasonRow && worstSeasonYear) {
+    facts.push({
+      id: "worst_single_season",
+      headline: "Worst regular season ever",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={worstSeasonRow.owner_id}
+            name={worstSeasonRow.owner}
+          />{" "}
+          went{" "}
+          <strong className="text-ink">
+            {fmtRecord(
+              worstSeasonRow.wins,
+              worstSeasonRow.losses,
+              worstSeasonRow.ties
+            )}
+          </strong>{" "}
+          in {worstSeasonYear}. An entire season of tape they probably
+          don&apos;t want back.
+        </>
+      ),
+    });
+  }
+
+  // Lowest career PF per game (≥3 seasons so we're not roasting newcomers).
+  const worstAvgPF = [...careerPool]
+    .filter((p) => p.seasons >= 3 && p.avgPF > 0)
+    .sort((a, b) => a.avgPF - b.avgPF)[0];
+  if (worstAvgPF) {
+    facts.push({
+      id: "worst_avg_pf",
+      headline: "Offense, allegedly",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={worstAvgPF.owner.owner_id}
+            name={worstAvgPF.owner.display_name}
+          />{" "}
+          averages just{" "}
+          <strong className="text-ink">{fmtNum(worstAvgPF.avgPF)}</strong>{" "}
+          points per game across {worstAvgPF.seasons} seasons — the lowest
+          tenured average in league history. The offense is not offending
+          anyone.
+        </>
+      ),
+    });
+  }
+
+  // Most non-playoff seasons (require ≥3 seasons of opportunity).
+  const missedPlayoffs = [...careerPool]
+    .filter((p) => p.seasons >= 3)
+    .map((p) => ({ p, missed: p.seasons - p.playoffAppearances }))
+    .filter(({ missed }) => missed > 0)
+    .sort(
+      (a, b) =>
+        b.missed - a.missed || a.p.playoffAppearances - b.p.playoffAppearances
+    )[0];
+  if (missedPlayoffs) {
+    facts.push({
+      id: "most_missed_playoffs",
+      headline: "Allergic to the playoffs",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={missedPlayoffs.p.owner.owner_id}
+            name={missedPlayoffs.p.owner.display_name}
+          />{" "}
+          has missed the playoffs{" "}
+          <strong className="text-ink">
+            {missedPlayoffs.missed} of {missedPlayoffs.p.seasons}
+          </strong>{" "}
+          seasons. December is just for watching at this point.
+        </>
+      ),
+    });
+  }
+
+  // Longest tenure with zero rings.
+  const ringless = [...careerPool]
+    .filter((p) => p.championships === 0 && p.seasons >= 4)
+    .sort((a, b) => b.seasons - a.seasons || b.games - a.games)[0];
+  if (ringless) {
+    facts.push({
+      id: "ringless_veteran",
+      headline: "Still chasing the first ring",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={ringless.owner.owner_id}
+            name={ringless.owner.display_name}
+          />{" "}
+          has played{" "}
+          <strong className="text-ink">{ringless.seasons} seasons</strong>{" "}
+          without raising a single trophy. There&apos;s always next year.
+          Probably not, though.
+        </>
+      ),
+    });
+  }
+
+  // Most runner-up finishes without a title — the choke artist award.
+  const mostChokes = [...careerPool]
+    .filter((p) => p.runnerUps > 0 && p.championships === 0)
+    .sort((a, b) => b.runnerUps - a.runnerUps || b.seasons - a.seasons)[0];
+  if (mostChokes) {
+    facts.push({
+      id: "most_runner_ups",
+      headline: "Always a bridesmaid",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={mostChokes.owner.owner_id}
+            name={mostChokes.owner.display_name}
+          />{" "}
+          has finished as runner-up{" "}
+          <strong className="text-ink">
+            {mostChokes.runnerUps}{" "}
+            {mostChokes.runnerUps === 1 ? "time" : "times"}
+          </strong>{" "}
+          without ever taking the title. So close, every time.
+        </>
+      ),
+    });
+  }
+
+  // Personal worst week — the worst single game any individual put up,
+  // separate from the league-wide #1 above (different victim, different week).
+  const ownProfileLow = [...careerPool]
+    .filter((p) => p.lowestSingleWeek != null && p.lowestSingleWeek.score > 0)
+    .sort(
+      (a, b) =>
+        (a.lowestSingleWeek!.score - b.lowestSingleWeek!.score) ||
+        (b.games - a.games)
+    );
+  // Skip whoever already owns the league-wide low so we don't repeat them.
+  const skipName = lowest?.ownerName?.toLowerCase() ?? null;
+  const personalLow = ownProfileLow.find(
+    (p) => p.owner.display_name.toLowerCase() !== skipName
+  );
+  if (personalLow && personalLow.lowestSingleWeek) {
+    facts.push({
+      id: "personal_low_week",
+      headline: "Career-low embarrassment",
+      body: (
+        <>
+          <OwnerLink
+            ownerId={personalLow.owner.owner_id}
+            name={personalLow.owner.display_name}
+          />
+          &apos;s worst week ever was{" "}
+          <strong className="text-ink">
+            {fmtNum(personalLow.lowestSingleWeek.score)}
+          </strong>{" "}
+          points in {personalLow.lowestSingleWeek.year} W
+          {personalLow.lowestSingleWeek.week}. Some weeks the lineup just
+          stops trying.
         </>
       ),
     });

@@ -397,11 +397,18 @@ function toRecord(m: MatchupWithYear): MatchupRecord {
 }
 
 export function getMatchupRecords(filter: "all" | "regular" | "playoff" = "all") {
-  const matchups = getAllMatchupsWithYear().filter((m) => {
-    if (filter === "regular") return !isPlayoffMatchup(m.matchup_type) && !isConsolationMatchup(m.matchup_type);
-    if (filter === "playoff") return isPlayoffMatchup(m.matchup_type);
-    return true;
-  });
+  const matchups = getAllMatchupsWithYear()
+    // Single-game records only consider true single-week games. Multi-week
+    // playoff series have aggregate scores (e.g. 260.82 for a 2-week total),
+    // not real per-week numbers, so they'd inflate "Highest Single-Week Score"
+    // and friends with apples-to-oranges values.
+    .filter((m) => !m.multiWeek)
+    .filter((m) => {
+      if (filter === "regular")
+        return !isPlayoffMatchup(m.matchup_type) && !isConsolationMatchup(m.matchup_type);
+      if (filter === "playoff") return isPlayoffMatchup(m.matchup_type);
+      return true;
+    });
 
   const sides: { score: number; opponentScore: number; year: number; week: number; ownerId: OwnerId | null; ownerName: string; teamName: string; matchup: MatchupWithYear; isWin: boolean }[] = [];
   for (const m of matchups) {
