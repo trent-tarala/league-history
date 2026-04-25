@@ -7,7 +7,6 @@ import { getSeasonChampions } from "@/lib/aggregations";
 import { getBiggestImprovements } from "@/lib/streaks";
 import { fmtNum, fmtPct } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
-import { cn } from "@/lib/cn";
 import type { Standing } from "@/lib/types";
 
 function ownerCellOrDash(s: Standing | null | undefined, suffix?: string) {
@@ -32,84 +31,100 @@ function PodiumPyramid({
   sacko: Standing | null | undefined;
 }) {
   // Pyramid silhouette: a true triangular apex (Champion) plus three
-  // trapezoidal tiers tapering down to the full-width base (League Loser).
-  // Each layer's bottom edge equals the next layer's top edge so the
-  // outline is continuous. Heights total 276px and the geometry tapers
-  // linearly from a point (50% / 50%) at y=0 to (0% / 100%) at y=276.
+  // trapezoidal tiers tapering down to a full-width base (League Loser).
+  // Each tier shares its bottom edge with the next tier's top edge so the
+  // outline is continuous. Geometry tapers linearly from a point (50%/50%)
+  // at y=0 to (0%/100%) at y=276 inside a 100x276 SVG viewBox; the SVG
+  // stretches to fill the card width via preserveAspectRatio="none".
+  //
+  // Each tier is rendered as an SVG <polygon> with a translucent fill and
+  // a solid stroke in its accent color (GitHub-banner style). `vector-effect:
+  // non-scaling-stroke` keeps the border 1.25px regardless of card width.
   const layers = [
     {
       key: "champ",
       label: "Champion",
       owner: champion,
       tint: "245, 196, 81", // accent.gold
-      // True triangle: point at top, base 30.43% wide (centered).
-      clip: "polygon(50% 0%, 65.22% 100%, 34.78% 100%)",
-      heightClass: "h-[84px]",
+      points: "50,0 65.22,84 34.78,84",
+      top: 0,
+      height: 84,
     },
     {
       key: "runner",
       label: "Runner-up",
       owner: runnerUp,
       tint: "154, 166, 199", // ink.dim — silvery
-      clip: "polygon(34.78% 0%, 65.22% 0%, 76.81% 100%, 23.19% 100%)",
-      heightClass: "h-16",
+      points: "34.78,84 65.22,84 76.81,148 23.19,148",
+      top: 84,
+      height: 64,
     },
     {
       key: "third",
       label: "Third Place",
       owner: third,
       tint: "76, 201, 240", // accent.blue
-      clip: "polygon(23.19% 0%, 76.81% 0%, 88.41% 100%, 11.59% 100%)",
-      heightClass: "h-16",
+      points: "23.19,148 76.81,148 88.41,212 11.59,212",
+      top: 148,
+      height: 64,
     },
     {
       key: "loser",
       label: "League Loser",
       owner: sacko,
       tint: "255, 93, 108", // accent.red
-      clip: "polygon(11.59% 0%, 88.41% 0%, 100% 100%, 0% 100%)",
-      heightClass: "h-16",
+      points: "11.59,212 88.41,212 100,276 0,276",
+      top: 212,
+      height: 64,
     },
   ];
   return (
-    <div className="my-3">
+    <div className="relative my-3" style={{ height: 276 }}>
+      <svg
+        aria-hidden
+        viewBox="0 0 100 276"
+        preserveAspectRatio="none"
+        className="absolute inset-0 block h-full w-full overflow-visible"
+      >
+        {layers.map((layer) => (
+          <polygon
+            key={layer.key}
+            points={layer.points}
+            fill={`rgba(${layer.tint}, 0.12)`}
+            stroke={`rgba(${layer.tint}, 0.95)`}
+            strokeWidth={1.25}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
       {layers.map((layer) => (
         <div
           key={layer.key}
-          className={cn("relative", layer.heightClass)}
+          className="absolute inset-x-0 flex flex-col items-center justify-end text-center px-2 pb-1.5 leading-tight text-ink"
+          style={{ top: layer.top, height: layer.height }}
         >
           <div
-            aria-hidden
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(to bottom, rgba(${layer.tint}, 0.18), rgba(${layer.tint}, 0.45))`,
-              clipPath: layer.clip,
-            }}
-          />
-          <div className="absolute inset-x-0 bottom-1.5 flex flex-col items-center text-center px-2 leading-tight text-ink">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: `rgb(${layer.tint})` }}
-            >
-              {layer.label}
-            </div>
-            <div className="text-sm font-semibold mt-0.5">
-              {layer.owner ? (
-                layer.owner.owner_id ? (
-                  <Link
-                    href={`/owners/${encodeURIComponent(layer.owner.owner_id)}/`}
-                    className="no-underline hover:underline"
-                    style={{ color: "inherit" }}
-                  >
-                    {layer.owner.owner}
-                  </Link>
-                ) : (
-                  <span>{layer.owner.owner}</span>
-                )
+            className="text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: `rgb(${layer.tint})` }}
+          >
+            {layer.label}
+          </div>
+          <div className="text-sm font-semibold mt-0.5">
+            {layer.owner ? (
+              layer.owner.owner_id ? (
+                <Link
+                  href={`/owners/${encodeURIComponent(layer.owner.owner_id)}/`}
+                  className="no-underline hover:underline"
+                  style={{ color: "inherit" }}
+                >
+                  {layer.owner.owner}
+                </Link>
               ) : (
-                "—"
-              )}
-            </div>
+                <span>{layer.owner.owner}</span>
+              )
+            ) : (
+              "—"
+            )}
           </div>
         </div>
       ))}
