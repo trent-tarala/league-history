@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-ink antialiased;
+  background-image: radial-gradient(
+      1200px 600px at 0% -10%,
+      rgba(124, 92, 255, 0.18),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 600px at 100% 110%,
+      rgba(76, 201, 240, 0.12),
+      transparent 55%
+    );
+  background-attachment: fixed;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3556;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4878;
+}
+
+a {
+  @apply text-accent hover:underline;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th {
+  @apply font-semibold text-ink-dim text-xs uppercase tracking-wider;
+}
+
+/* Hide Next.js dev tools indicator. The Cursor browser injects data-cursor-ref
+   attributes after page load, which trips a benign hydration warning that
+   keeps the "Issues" pill visible even with devIndicators:false. */
+nextjs-portal {
+  display: none !important;
+}
