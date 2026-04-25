@@ -152,6 +152,12 @@ export default async function H2HPage({ params }: PageProps) {
           label="Win %"
           value={cellAB ? fmtPct(cellAB.winPct) : "—"}
           accent="green"
+          hint={
+            ownerA.display_name.toLowerCase() === "sam reese" &&
+            ownerB.display_name.toLowerCase() === "trent tarala" ? (
+              <span className="italic">i got lucky once</span>
+            ) : undefined
+          }
           info={STAT_DEFS.h2hWinPct}
         />
         <StatTile

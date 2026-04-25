@@ -142,26 +142,18 @@ export default async function OwnerPage({ params }: PageProps) {
     .filter((x): x is H2HRow => x !== null)
     .sort((a, b) => b.winPct - a.winPct || b.games - a.games);
 
-  const isSamProfile = owner.display_name.toLowerCase() === "sam reese";
-
   const h2hCols: Column<H2HRow>[] = [
     {
       key: "opp",
       header: "Opponent",
-      render: (r) => {
-        const isTrentRow = r.opponentName.toLowerCase() === "trent tarala";
-        return (
-          <Link
-            href={`/head-to-head/${ownerSlug(ownerId)}/${ownerSlug(r.opponentId)}/`}
-            className="text-ink no-underline hover:text-accent"
-          >
-            {r.opponentName}
-            {isSamProfile && isTrentRow && (
-              <span className="text-ink-dim ml-1.5 italic">(i got lucky once)</span>
-            )}
-          </Link>
-        );
-      },
+      render: (r) => (
+        <Link
+          href={`/head-to-head/${ownerSlug(ownerId)}/${ownerSlug(r.opponentId)}/`}
+          className="text-ink no-underline hover:text-accent"
+        >
+          {r.opponentName}
+        </Link>
+      ),
     },
     {
       key: "rec",
