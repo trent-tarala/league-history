@@ -9,6 +9,12 @@ import { WeeklyHeatmap } from "@/components/WeeklyHeatmap";
 import { DraftBoardGrid } from "@/components/DraftBoardGrid";
 import { getSeason, getYears } from "@/lib/data";
 import { getSeasonChampions } from "@/lib/aggregations";
+import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
+import {
+  getWeeksPlayed,
+  isSeasonComplete,
+  sortSeasonStandings,
+} from "@/lib/season-status";
 import {
   fmtNum,
   fmtRecord,
@@ -33,12 +39,12 @@ export default async function SeasonPage({ params }: PageProps) {
   if (!season) notFound();
 
   const yi = Number(year);
+  const complete = isSeasonComplete(year);
   const champ = getSeasonChampions().find((c) => c.year === yi);
   const teamCount = season.standings.length;
+  const weeksPlayed = getWeeksPlayed(year);
 
-  const sortedStandings = [...season.standings].sort(
-    (a, b) => (a.final_standing ?? 999) - (b.final_standing ?? 999)
-  );
+  const sortedStandings = sortSeasonStandings(season.standings, year);
 
   const standingsCols: Column<Standing>[] = [
     {
@@ -46,8 +52,10 @@ export default async function SeasonPage({ params }: PageProps) {
       header: "#",
       align: "right",
       className: "text-ink-faint w-8",
-      render: (s) =>
-        s.final_standing != null ? ordinal(s.final_standing) : "—",
+      render: (s, idx) =>
+        complete && s.final_standing != null
+          ? ordinal(s.final_standing)
+          : ordinal(idx + 1),
     },
     {
       key: "owner",
@@ -106,13 +114,13 @@ export default async function SeasonPage({ params }: PageProps) {
       key: "trophy",
       header: "",
       render: (s) =>
-        s.final_standing === 1 ? (
+        complete && s.final_standing === 1 ? (
           <Trophy label="Champ" tier="gold" />
-        ) : s.final_standing === 2 ? (
+        ) : complete && s.final_standing === 2 ? (
           <Trophy label="2nd" tier="silver" />
-        ) : s.final_standing === 3 ? (
+        ) : complete && s.final_standing === 3 ? (
           <Trophy label="3rd" tier="bronze" />
-        ) : s.final_standing === teamCount ? (
+        ) : complete && s.final_standing === teamCount ? (
           <Trophy label="Loser" tier="sacko" />
         ) : null,
     },
@@ -168,15 +176,17 @@ export default async function SeasonPage({ params }: PageProps) {
         <Link href="/seasons/" className="text-xs">
           ← All seasons
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight mt-2">
-          {year} Season
-        </h1>
+        <div className="flex flex-wrap items-center gap-3 mt-2">
+          <h1 className="text-2xl font-semibold tracking-tight">{year} Season</h1>
+          <SeasonStatusBadge year={year} />
+        </div>
         <p className="text-ink-dim text-sm mt-1">
           {teamCount} teams • {season.matchups.length} matchups
+          {!complete && weeksPlayed > 0 && ` • through week ${weeksPlayed}`}
         </p>
       </header>
 
-      {champ && (
+      {complete && champ && (
         <div className="flex flex-wrap gap-2">
           {champ.champion && (
             <Trophy label={`Champ: ${champ.champion.owner}`} tier="gold" />
@@ -193,7 +203,14 @@ export default async function SeasonPage({ params }: PageProps) {
         </div>
       )}
 
-      <Card title="Final Standings">
+      {!complete && (
+        <div className="rounded-xl border border-dashed border-accent-gold/20 bg-accent-gold/5 px-4 py-3 text-sm text-ink-dim">
+          Season in progress — standings reflect the current week. Final placements
+          and trophies are awarded after the championship.
+        </div>
+      )}
+
+      <Card title={complete ? "Final Standings" : "Current Standings"}>
         <StatTable
           rows={sortedStandings}
           columns={standingsCols}
@@ -210,12 +227,13 @@ export default async function SeasonPage({ params }: PageProps) {
             cells are the highest single-week totals of the year.
             A <span className="text-accent-green">green outline</span> marks
             a win that week and a <span className="text-accent-red">red outline</span>{" "}
-            marks a loss. Rows are sorted top-to-bottom by final standing.
+            marks a loss. Rows are sorted top-to-bottom by{" "}
+            {complete ? "final standing" : "current record"}.
           </>
         }
         info={STAT_DEFS.weeklyHeatmap}
       >
-        <WeeklyHeatmap standings={season.standings} />
+        <WeeklyHeatmap standings={season.standings} year={year} />
       </Card>
 
       <Card title="Matchup Log">

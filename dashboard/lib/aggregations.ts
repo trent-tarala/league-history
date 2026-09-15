@@ -8,6 +8,7 @@ import {
   getSeason,
   type MatchupWithYear,
 } from "./data";
+import { isSeasonComplete } from "./season-status";
 
 function ownerDisplayName(
   id: OwnerId | null | undefined,
@@ -177,30 +178,33 @@ export function getCareerProfiles(): Map<OwnerId, CareerProfile> {
       profile.pointsFor += row.points_for;
       profile.pointsAgainst += row.points_against;
       const teamSize = season.length;
-      if (row.final_standing != null) {
+      const seasonComplete = isSeasonComplete(year);
+      if (seasonComplete && row.final_standing != null) {
         profile.finishes.push(row.final_standing);
         if (row.final_standing === 1) profile.championships += 1;
         else if (row.final_standing === 2) profile.runnerUps += 1;
         else if (row.final_standing === 3) profile.thirdPlaces += 1;
         if (row.final_standing === teamSize) profile.lastPlaces += 1;
       }
-      if (isPlayoffTeam(row, getSeason(year))) {
+      if (seasonComplete && isPlayoffTeam(row, getSeason(year))) {
         profile.playoffAppearances += 1;
       }
 
-      // Track best/worst season by final standing then PF.
-      const isBetter =
-        profile.bestSeason == null ||
-        (row.final_standing ?? 999) < (profile.bestSeason.final_standing ?? 999) ||
-        ((row.final_standing ?? 999) === (profile.bestSeason.final_standing ?? 999) &&
-          row.points_for > profile.bestSeason.points_for);
-      if (isBetter) profile.bestSeason = row;
-      const isWorse =
-        profile.worstSeason == null ||
-        (row.final_standing ?? -1) > (profile.worstSeason.final_standing ?? -1) ||
-        ((row.final_standing ?? -1) === (profile.worstSeason.final_standing ?? -1) &&
-          row.points_for < profile.worstSeason.points_for);
-      if (isWorse) profile.worstSeason = row;
+      // Track best/worst season by final standing then PF (completed seasons only).
+      if (seasonComplete && row.final_standing != null) {
+        const isBetter =
+          profile.bestSeason == null ||
+          row.final_standing < (profile.bestSeason.final_standing ?? 999) ||
+          (row.final_standing === (profile.bestSeason.final_standing ?? 999) &&
+            row.points_for > profile.bestSeason.points_for);
+        if (isBetter) profile.bestSeason = row;
+        const isWorse =
+          profile.worstSeason == null ||
+          row.final_standing > (profile.worstSeason.final_standing ?? -1) ||
+          (row.final_standing === (profile.worstSeason.final_standing ?? -1) &&
+            row.points_for < profile.worstSeason.points_for);
+        if (isWorse) profile.worstSeason = row;
+      }
 
       // Single-week highs/lows.
       row.weekly_scores.forEach((score, idx) => {
@@ -267,6 +271,7 @@ export function getCareerProfile(id: OwnerId): CareerProfile | undefined {
 
 export interface SeasonChampion {
   year: number;
+  isComplete: boolean;
   champion: Standing | null;
   runnerUp: Standing | null;
   third: Standing | null;
@@ -295,10 +300,19 @@ export function getSeasonChampions(): SeasonChampion[] {
     const standings = season.standings;
     const yi = Number(year);
     const teamSize = standings.length;
-    const champion = standings.find((r) => r.final_standing === 1) ?? null;
-    const runnerUp = standings.find((r) => r.final_standing === 2) ?? null;
-    const third = standings.find((r) => r.final_standing === 3) ?? null;
-    const sacko = standings.find((r) => r.final_standing === teamSize) ?? null;
+    const complete = isSeasonComplete(year);
+    const champion = complete
+      ? (standings.find((r) => r.final_standing === 1) ?? null)
+      : null;
+    const runnerUp = complete
+      ? (standings.find((r) => r.final_standing === 2) ?? null)
+      : null;
+    const third = complete
+      ? (standings.find((r) => r.final_standing === 3) ?? null)
+      : null;
+    const sacko = complete
+      ? (standings.find((r) => r.final_standing === teamSize) ?? null)
+      : null;
     const pointsLeader = [...standings].sort(
       (a, b) => b.points_for - a.points_for
     )[0] ?? null;
@@ -341,6 +355,7 @@ export function getSeasonChampions(): SeasonChampion[] {
 
     out.push({
       year: yi,
+      isComplete: complete,
       champion,
       runnerUp,
       third,

@@ -1,5 +1,6 @@
 import { getYears, getSeason, getOwners } from "./data";
 import { isConsolationMatchup, isPlayoffMatchup } from "./constants";
+import { isSeasonComplete } from "./season-status";
 import type { OwnerId, OwnerRegistryEntry } from "./types";
 
 export interface AllPlayRow {
@@ -103,6 +104,7 @@ export function getLuckIndex(): LuckIndexRow[] {
   const ownerById = new Map(getOwners().map((o) => [o.owner_id, o]));
   const out: LuckIndexRow[] = [];
   for (const year of getYears()) {
+    if (!isSeasonComplete(year)) continue;
     const season = getSeason(year);
     if (!season) continue;
     const byPF = [...season.standings].sort(
@@ -143,6 +145,7 @@ export function getCursedSeasons(limit = 10): CursedSeason[] {
   const ownerById = new Map(getOwners().map((o) => [o.owner_id, o]));
   const out: CursedSeason[] = [];
   for (const year of getYears()) {
+    if (!isSeasonComplete(year)) continue;
     const season = getSeason(year);
     if (!season) continue;
     const playoffTeamIds = new Set<OwnerId>();

@@ -1,6 +1,7 @@
 import { getOwnerMatchups } from "./aggregations";
 import { getOwners, getYears, getSeason } from "./data";
 import { isPlayoffMatchup } from "./constants";
+import { isSeasonComplete } from "./season-status";
 import type { OwnerId, OwnerRegistryEntry } from "./types";
 
 export interface Streak {
@@ -130,7 +131,10 @@ export function getPlayoffAppearanceStreaks(): PlayoffStreak[] {
     });
     if (bestLen === 0) continue;
     const lastYear = Number(years[years.length - 1]);
-    const isActive = bestEnd === lastYear && ownerMadePlayoffs(owner.owner_id, String(lastYear));
+    const isActive =
+      bestEnd === lastYear &&
+      !isSeasonComplete(lastYear) &&
+      ownerMadePlayoffs(owner.owner_id, String(lastYear));
     out.push({
       ownerId: owner.owner_id,
       ownerName: owner.display_name,
@@ -175,7 +179,9 @@ export function getPlayoffDroughts(): PlayoffStreak[] {
     if (bestLen === 0) continue;
     const lastYear = Number(years[years.length - 1]);
     const isActive =
-      bestEnd === lastYear && !ownerMadePlayoffs(owner.owner_id, String(lastYear));
+      bestEnd === lastYear &&
+      !isSeasonComplete(lastYear) &&
+      !ownerMadePlayoffs(owner.owner_id, String(lastYear));
     out.push({
       ownerId: owner.owner_id,
       ownerName: owner.display_name,
@@ -211,7 +217,7 @@ export function getBiggestImprovements(): YoYDelta[] {
       if (!row) continue;
       const games = row.wins + row.losses + row.ties;
       const winPct = games > 0 ? (row.wins + row.ties * 0.5) / games : 0;
-      if (prev) {
+      if (prev && isSeasonComplete(prev.year) && isSeasonComplete(year)) {
         out.push({
           owner,
           fromYear: prev.year,
@@ -221,7 +227,9 @@ export function getBiggestImprovements(): YoYDelta[] {
           delta: winPct - prev.winPct,
         });
       }
-      prev = { year, winPct };
+      if (isSeasonComplete(year)) {
+        prev = { year, winPct };
+      }
     }
   }
   return out.sort((a, b) => b.delta - a.delta);

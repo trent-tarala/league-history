@@ -3,9 +3,11 @@ import { Card } from "@/components/Card";
 import { OwnerLink } from "@/components/OwnerLink";
 import { InfoIcon } from "@/components/InfoIcon";
 import { getSeasonChampions } from "@/lib/aggregations";
+import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
 import { getBiggestImprovements } from "@/lib/streaks";
 import { fmtNum, fmtPct, ownerSlug } from "@/lib/constants";
 import { STAT_DEFS } from "@/lib/stat-definitions";
+import { getWeeksPlayed } from "@/lib/season-status";
 import type { Standing } from "@/lib/types";
 
 function ownerCellOrDash(s: Standing | null | undefined, suffix?: string) {
@@ -146,86 +148,130 @@ export default function AwardsPage() {
       </header>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {seasons.map((s) => (
-          <Card
-            key={s.year}
-            title={
-              <Link
-                href={`/seasons/${s.year}/`}
-                className="text-ink no-underline hover:text-accent"
-              >
-                {s.year}
-              </Link>
-            }
-          >
-            <PodiumPyramid
-              champion={s.champion}
-              runnerUp={s.runnerUp}
-              third={s.third}
-              sacko={s.sacko}
-            />
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-white/5">
-                <Award label="Reg-season title" info={STAT_DEFS.regularSeasonTitle}>
-                  {ownerCellOrDash(s.regularSeasonLeader)}
-                </Award>
-                <Award label="Points leader" info={STAT_DEFS.pointsLeader}>
-                  {ownerCellOrDash(
-                    s.pointsLeader,
-                    s.pointsLeader ? `(${fmtNum(s.pointsLeader.points_for)})` : undefined
-                  )}
-                </Award>
-                <Award label="Most screwed (PA leader)" info={STAT_DEFS.mostScrewed}>
-                  {ownerCellOrDash(
-                    s.pointsAgainstLeader,
-                    s.pointsAgainstLeader
-                      ? `(${fmtNum(s.pointsAgainstLeader.points_against)})`
-                      : undefined
-                  )}
-                </Award>
-                <Award label="Highest single week" info={STAT_DEFS.highestWeek}>
-                  {s.highestWeek ? (
-                    <span>
-                      <OwnerLink ownerId={s.highestWeek.ownerId} name={s.highestWeek.ownerName} />
-                      <span className="text-ink-faint">
-                        {" "}
-                        • {fmtNum(s.highestWeek.score)} • W{s.highestWeek.week}
+        {seasons.map((s) => {
+          const weeksPlayed = getWeeksPlayed(s.year);
+          const throughLabel =
+            weeksPlayed > 0 ? `Through week ${weeksPlayed}` : "Season not started";
+          return (
+            <Card
+              key={s.year}
+              title={
+                <span className="inline-flex items-center gap-2">
+                  <Link
+                    href={`/seasons/${s.year}/`}
+                    className="text-ink no-underline hover:text-accent"
+                  >
+                    {s.year}
+                  </Link>
+                  <SeasonStatusBadge year={s.year} />
+                </span>
+              }
+            >
+              {s.isComplete ? (
+                <PodiumPyramid
+                  champion={s.champion}
+                  runnerUp={s.runnerUp}
+                  third={s.third}
+                  sacko={s.sacko}
+                />
+              ) : (
+                <div className="my-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center">
+                  <p className="text-sm font-medium text-ink">Season in progress</p>
+                  <p className="text-xs text-ink-dim mt-1">
+                    {throughLabel}. Trophies and final awards will appear after the
+                    championship.
+                  </p>
+                </div>
+              )}
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-white/5">
+                  <Award
+                    label={s.isComplete ? "Reg-season title" : "Reg-season leader"}
+                    info={STAT_DEFS.regularSeasonTitle}
+                  >
+                    {ownerCellOrDash(s.regularSeasonLeader)}
+                  </Award>
+                  <Award
+                    label={s.isComplete ? "Points leader" : "Points leader (so far)"}
+                    info={STAT_DEFS.pointsLeader}
+                  >
+                    {ownerCellOrDash(
+                      s.pointsLeader,
+                      s.pointsLeader ? `(${fmtNum(s.pointsLeader.points_for)})` : undefined
+                    )}
+                  </Award>
+                  <Award
+                    label={
+                      s.isComplete ? "Most screwed (PA leader)" : "Most screwed (so far)"
+                    }
+                    info={STAT_DEFS.mostScrewed}
+                  >
+                    {ownerCellOrDash(
+                      s.pointsAgainstLeader,
+                      s.pointsAgainstLeader
+                        ? `(${fmtNum(s.pointsAgainstLeader.points_against)})`
+                        : undefined
+                    )}
+                  </Award>
+                  <Award
+                    label={s.isComplete ? "Highest single week" : "Highest week (so far)"}
+                    info={STAT_DEFS.highestWeek}
+                  >
+                    {s.highestWeek ? (
+                      <span>
+                        <OwnerLink ownerId={s.highestWeek.ownerId} name={s.highestWeek.ownerName} />
+                        <span className="text-ink-faint">
+                          {" "}
+                          • {fmtNum(s.highestWeek.score)} • W{s.highestWeek.week}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </Award>
-                <Award label="Most consistent" info={STAT_DEFS.mostConsistent}>
-                  {s.mostConsistent ? (
-                    <span>
-                      <OwnerLink ownerId={s.mostConsistent.row.owner_id} name={s.mostConsistent.row.owner} />
-                      <span className="text-ink-faint">
-                        {" "}
-                        • σ {fmtNum(s.mostConsistent.stdDev)}
+                    ) : (
+                      "—"
+                    )}
+                  </Award>
+                  <Award
+                    label={s.isComplete ? "Most consistent" : "Most consistent (so far)"}
+                    info={STAT_DEFS.mostConsistent}
+                  >
+                    {s.mostConsistent ? (
+                      <span>
+                        <OwnerLink
+                          ownerId={s.mostConsistent.row.owner_id}
+                          name={s.mostConsistent.row.owner}
+                        />
+                        <span className="text-ink-faint">
+                          {" "}
+                          • σ {fmtNum(s.mostConsistent.stdDev)}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </Award>
-                <Award label="Most volatile" info={STAT_DEFS.mostVolatile}>
-                  {s.mostVolatile ? (
-                    <span>
-                      <OwnerLink ownerId={s.mostVolatile.row.owner_id} name={s.mostVolatile.row.owner} />
-                      <span className="text-ink-faint">
-                        {" "}
-                        • σ {fmtNum(s.mostVolatile.stdDev)}
+                    ) : (
+                      "—"
+                    )}
+                  </Award>
+                  <Award
+                    label={s.isComplete ? "Most volatile" : "Most volatile (so far)"}
+                    info={STAT_DEFS.mostVolatile}
+                  >
+                    {s.mostVolatile ? (
+                      <span>
+                        <OwnerLink
+                          ownerId={s.mostVolatile.row.owner_id}
+                          name={s.mostVolatile.row.owner}
+                        />
+                        <span className="text-ink-faint">
+                          {" "}
+                          • σ {fmtNum(s.mostVolatile.stdDev)}
+                        </span>
                       </span>
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </Award>
-              </tbody>
-            </table>
-          </Card>
-        ))}
+                    ) : (
+                      "—"
+                    )}
+                  </Award>
+                </tbody>
+              </table>
+            </Card>
+          );
+        })}
       </div>
 
       <Card

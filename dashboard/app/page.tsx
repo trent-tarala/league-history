@@ -16,6 +16,8 @@ import {
   type CareerProfile,
 } from "@/lib/aggregations";
 import { getSeason, getStandingsByYear, getYears } from "@/lib/data";
+import { getCompletedSeasonYears } from "@/lib/season-status";
+import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
 import type { Standing } from "@/lib/types";
 import {
   fmtInt,
@@ -32,7 +34,10 @@ export default function HomePage() {
   const profiles = Array.from(getCareerProfiles().values()).sort(
     (a, b) => b.winPct - a.winPct
   );
-  const champions = getSeasonChampions().sort((a, b) => b.year - a.year);
+  const allSeasons = getSeasonChampions().sort((a, b) => b.year - a.year);
+  const champions = allSeasons.filter((c) => c.isComplete);
+  const inProgressSeasons = allSeasons.filter((c) => !c.isComplete);
+  const completedSeasonCount = getCompletedSeasonYears().length;
   const records = getMatchupRecords();
   const games = totalGamesPlayed();
   const points = totalPointsScored();
@@ -52,8 +57,6 @@ export default function HomePage() {
       return { x: year, total, games: count / 2 };
     })
     .filter((x): x is { x: string; total: number; games: number } => x !== null);
-
-  const topWinPct = profiles.slice(0, 8);
 
   const recordCols: Column<CareerProfile>[] = [
     {
@@ -103,7 +106,7 @@ export default function HomePage() {
         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
           <StatTile
             label="Seasons"
-            value={fmtInt(champions.length)}
+            value={fmtInt(completedSeasonCount)}
             info="Number of completed seasons in the league archive."
           />
           <StatTile
@@ -124,7 +127,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Card title="Trophy Case" subtitle="Champions, runners-up, and the League Loser for every season">
+      {inProgressSeasons.length > 0 && (
+        <Card
+          title="Current Season"
+          subtitle="Standings update weekly — trophies are awarded after the championship"
+        >
+          <div className="flex flex-wrap gap-3">
+            {inProgressSeasons.map((s) => (
+              <Link
+                key={s.year}
+                href={`/seasons/${s.year}/`}
+                className="inline-flex items-center gap-2 rounded-xl border border-accent-gold/20 bg-accent-gold/5 px-4 py-3 no-underline hover:border-accent-gold/40 hover:no-underline"
+              >
+                <span className="text-lg font-semibold text-ink">{s.year}</span>
+                <SeasonStatusBadge year={s.year} />
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card title="Trophy Case" subtitle="Champions, runners-up, and the League Loser for every completed season">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -221,10 +244,10 @@ export default function HomePage() {
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
         <Card
           title="All-Time Win %"
-          subtitle="Top owners by career winning percentage"
+          subtitle="Every owner ranked by career winning percentage"
           actions={<Link href="/leaderboards/" className="text-xs">All leaderboards →</Link>}
         >
-          <StatTable rows={topWinPct} columns={recordCols} />
+          <StatTable rows={profiles} columns={recordCols} />
         </Card>
 
         <div className="grid grid-cols-2 grid-rows-4 gap-3 h-full">
@@ -617,6 +640,7 @@ function buildDailyFacts(
   let worstSeasonYear: number | null = null;
   let worstSeasonRate = Infinity;
   for (const [year, standings] of standingsByYear) {
+    if (!getCompletedSeasonYears().includes(Number(year))) continue;
     for (const row of standings) {
       const games = row.wins + row.losses + row.ties;
       if (games < 5) continue;

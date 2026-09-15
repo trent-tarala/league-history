@@ -1,10 +1,12 @@
 import { cn } from "@/lib/cn";
 import { fmtNum } from "@/lib/constants";
+import { sortSeasonStandings } from "@/lib/season-status";
 import type { Standing } from "@/lib/types";
 import { OwnerLink } from "./OwnerLink";
 
 interface WeeklyHeatmapProps {
   standings: Standing[];
+  year: number | string;
 }
 
 /** Color for a single weekly score using a min..max scale. */
@@ -21,16 +23,14 @@ function colorFor(score: number, min: number, max: number): string {
   return `rgb(${Math.round(124 + (245 - 124) * u)}, ${Math.round(92 + (196 - 92) * u)}, ${Math.round(255 + (81 - 255) * u)})`;
 }
 
-export function WeeklyHeatmap({ standings }: WeeklyHeatmapProps) {
+export function WeeklyHeatmap({ standings, year }: WeeklyHeatmapProps) {
   if (standings.length === 0) return null;
   const maxWeek = Math.max(0, ...standings.map((s) => s.weekly_scores.length));
   const allScores = standings.flatMap((s) => s.weekly_scores).filter((v) => v > 0);
   if (allScores.length === 0) return null;
   const minScore = Math.min(...allScores);
   const maxScore = Math.max(...allScores);
-  const sorted = [...standings].sort(
-    (a, b) => (a.final_standing ?? 999) - (b.final_standing ?? 999)
-  );
+  const sorted = sortSeasonStandings(standings, year);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-separate border-spacing-0.5">

@@ -12,6 +12,8 @@ import {
   getOwnerMatchups,
 } from "@/lib/aggregations";
 import { getOwner, getOwnerIds, getOwners, getYears, getSeason } from "@/lib/data";
+import { isSeasonComplete } from "@/lib/season-status";
+import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
 import {
   colorForOwner,
   fmtNum,
@@ -66,11 +68,18 @@ export default async function OwnerPage({ params }: PageProps) {
   const h2hMap = getHeadToHead();
 
   const yearCols: Column<typeof yearByYear[number]>[] = [
-    { key: "year", header: "Year", render: (r) => (
-      <Link href={`/seasons/${r.year}/`} className="text-ink no-underline hover:text-accent">
-        {r.year}
-      </Link>
-    ) },
+    {
+      key: "year",
+      header: "Year",
+      render: (r) => (
+        <span className="inline-flex items-center gap-2">
+          <Link href={`/seasons/${r.year}/`} className="text-ink no-underline hover:text-accent">
+            {r.year}
+          </Link>
+          {!isSeasonComplete(r.year) && <SeasonStatusBadge year={r.year} />}
+        </span>
+      ),
+    },
     { key: "team", header: "Team", render: (r) => r.row.team_name ?? "—" },
     {
       key: "rec",
@@ -99,6 +108,9 @@ export default async function OwnerPage({ params }: PageProps) {
       info: STAT_DEFS.finish,
       align: "right",
       render: (r) => {
+        if (!isSeasonComplete(r.year)) {
+          return <span className="text-ink-faint">Pending</span>;
+        }
         if (r.row.final_standing == null) return "—";
         const isChamp = r.row.final_standing === 1;
         const isSacko = r.row.final_standing === r.teamCount;

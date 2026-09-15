@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { OwnerLink } from "@/components/OwnerLink";
+import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
 import { getSeasonChampions } from "@/lib/aggregations";
 import { fmtNum } from "@/lib/constants";
+import { getWeeksPlayed } from "@/lib/season-status";
 
 export default function SeasonsIndexPage() {
   const champs = getSeasonChampions().sort((a, b) => b.year - a.year);
@@ -20,13 +22,22 @@ export default function SeasonsIndexPage() {
             href={`/seasons/${c.year}/`}
             className="block rounded-2xl border border-white/5 bg-bg-card/70 p-5 hover:border-white/10 hover:bg-bg-card no-underline hover:no-underline"
           >
-            <div className="text-2xl font-semibold text-ink">{c.year}</div>
-            {c.champion && (
+            <div className="flex items-center gap-2">
+              <div className="text-2xl font-semibold text-ink">{c.year}</div>
+              <SeasonStatusBadge year={c.year} />
+            </div>
+            {c.isComplete && c.champion ? (
               <div className="text-sm text-ink-dim mt-3">
                 Champion:{" "}
                 <span className="text-ink">
                   <OwnerLink ownerId={c.champion.owner_id} name={c.champion.owner} />
                 </span>
+              </div>
+            ) : (
+              <div className="text-sm text-ink-dim mt-3">
+                {getWeeksPlayed(c.year) > 0
+                  ? `In progress • through week ${getWeeksPlayed(c.year)}`
+                  : "Season pending"}
               </div>
             )}
             {c.pointsLeader && (
