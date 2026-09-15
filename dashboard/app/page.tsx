@@ -17,7 +17,6 @@ import {
 } from "@/lib/aggregations";
 import { getSeason, getStandingsByYear, getYears } from "@/lib/data";
 import { getCompletedSeasonYears } from "@/lib/season-status";
-import { SeasonStatusBadge } from "@/components/SeasonStatusBadge";
 import type { Standing } from "@/lib/types";
 import {
   fmtInt,
@@ -34,9 +33,9 @@ export default function HomePage() {
   const profiles = Array.from(getCareerProfiles().values()).sort(
     (a, b) => b.winPct - a.winPct
   );
-  const allSeasons = getSeasonChampions().sort((a, b) => b.year - a.year);
-  const champions = allSeasons.filter((c) => c.isComplete);
-  const inProgressSeasons = allSeasons.filter((c) => !c.isComplete);
+  const champions = getSeasonChampions()
+    .filter((c) => c.isComplete)
+    .sort((a, b) => b.year - a.year);
   const completedSeasonCount = getCompletedSeasonYears().length;
   const records = getMatchupRecords();
   const games = totalGamesPlayed();
@@ -126,26 +125,6 @@ export default function HomePage() {
           />
         </div>
       </section>
-
-      {inProgressSeasons.length > 0 && (
-        <Card
-          title="Current Season"
-          subtitle="Standings update weekly — trophies are awarded after the championship"
-        >
-          <div className="flex flex-wrap gap-3">
-            {inProgressSeasons.map((s) => (
-              <Link
-                key={s.year}
-                href={`/seasons/${s.year}/`}
-                className="inline-flex items-center gap-2 rounded-xl border border-accent-gold/20 bg-accent-gold/5 px-4 py-3 no-underline hover:border-accent-gold/40 hover:no-underline"
-              >
-                <span className="text-lg font-semibold text-ink">{s.year}</span>
-                <SeasonStatusBadge year={s.year} />
-              </Link>
-            ))}
-          </div>
-        </Card>
-      )}
 
       <Card title="Trophy Case" subtitle="Champions, runners-up, and the League Loser for every completed season">
         <div className="overflow-x-auto">
