@@ -391,6 +391,10 @@ export interface MatchupRecord {
   isPlayoff: boolean;
 }
 
+function isPlayedMatchupRecord(r: MatchupRecord): boolean {
+  return r.homeScore > 0 || r.awayScore > 0;
+}
+
 function toRecord(m: MatchupWithYear): MatchupRecord {
   return {
     year: m.year,
@@ -459,8 +463,14 @@ export function getMatchupRecords(filter: "all" | "regular" | "playoff" = "all")
       .filter((s) => s.score > 0)
       .sort((a, b) => a.score - b.score)
       .slice(0, 10),
-    biggestBlowout: [...records].sort((a, b) => b.margin - a.margin).slice(0, 10),
-    closestGame: [...records].sort((a, b) => a.margin - b.margin).slice(0, 10),
+    biggestBlowout: [...records]
+      .filter(isPlayedMatchupRecord)
+      .sort((a, b) => b.margin - a.margin)
+      .slice(0, 10),
+    closestGame: [...records]
+      .filter(isPlayedMatchupRecord)
+      .sort((a, b) => a.margin - b.margin)
+      .slice(0, 10),
     highestCombined: [...records].sort((a, b) => b.combined - a.combined).slice(0, 10),
     lowestCombined: [...records]
       .filter((r) => r.combined > 0)
@@ -574,6 +584,7 @@ export function uniqueStartedPlayerCount(): number {
 export function avgScorePerYear(): { year: number; avg: number }[] {
   const out: { year: number; avg: number }[] = [];
   for (const year of getYears()) {
+    if (!isSeasonComplete(year)) continue;
     const season = getSeason(year);
     if (!season) continue;
     const scores: number[] = [];

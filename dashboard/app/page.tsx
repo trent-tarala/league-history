@@ -16,7 +16,7 @@ import {
   type CareerProfile,
 } from "@/lib/aggregations";
 import { getSeason, getStandingsByYear, getYears } from "@/lib/data";
-import { getCompletedSeasonYears } from "@/lib/season-status";
+import { getCompletedSeasonYears, isSeasonComplete } from "@/lib/season-status";
 import type { Standing } from "@/lib/types";
 import {
   fmtInt,
@@ -42,6 +42,7 @@ export default function HomePage() {
   const points = totalPointsScored();
   const avgScore = avgScorePerYear();
   const pointsPerYear = getYears()
+    .filter((year) => isSeasonComplete(year))
     .map((year) => {
       const season = getSeason(year);
       if (!season) return null;
@@ -249,11 +250,13 @@ export default function HomePage() {
             value={fmtNum(records.biggestBlowout[0]?.margin)}
             hint={
               records.biggestBlowout[0]
-                ? `${
-                    records.biggestBlowout[0].homeScore < records.biggestBlowout[0].awayScore
-                      ? records.biggestBlowout[0].homeOwnerName
-                      : records.biggestBlowout[0].awayOwnerName
-                  } • ${records.biggestBlowout[0].year} W${records.biggestBlowout[0].week}`
+                ? (() => {
+                    const b = records.biggestBlowout[0];
+                    const homeWon = b.homeScore >= b.awayScore;
+                    const winner = homeWon ? b.homeOwnerName : b.awayOwnerName;
+                    const loser = homeWon ? b.awayOwnerName : b.homeOwnerName;
+                    return `${winner} over ${loser} • ${b.year} W${b.week}`;
+                  })()
                 : undefined
             }
             accent="red"
