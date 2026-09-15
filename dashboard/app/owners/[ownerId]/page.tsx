@@ -57,11 +57,13 @@ export default async function OwnerPage({ params }: PageProps) {
   const matchups = getOwnerMatchups()
     .filter((m) => m.ownerId === ownerId)
     .sort((a, b) => a.year - b.year || a.week - b.week);
-  const chartData = matchups.map((m, idx) => ({
-    x: `${m.year} W${m.week}`,
-    score: m.ownerScore,
-    seq: idx,
-  }));
+  const chartData = matchups
+    .filter((m) => m.ownerScore > 0 || m.opponentScore > 0)
+    .map((m, idx) => ({
+      x: `${m.year} W${m.week}`,
+      score: m.ownerScore,
+      seq: idx,
+    }));
 
   // Head-to-head summary vs every other owner.
   const allOwners = getOwners().filter((o) => o.owner_id !== ownerId);
