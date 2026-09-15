@@ -33,6 +33,16 @@ export function fmtRecord(w: number, l: number, t = 0): string {
   return t > 0 ? `${w}-${l}-${t}` : `${w}-${l}`;
 }
 
+/** Unplayed ESPN matchups come through as 0–0 with winner "Tie". */
+export function formatMatchupWinner(
+  winner: string | null | undefined,
+  homeScore: number,
+  awayScore: number
+): string {
+  if (homeScore === 0 && awayScore === 0) return "Pending";
+  return winner ?? "—";
+}
+
 export function initials(name: string): string {
   return name
     .split(/\s+/)

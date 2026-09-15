@@ -18,6 +18,7 @@ import {
 import {
   fmtNum,
   fmtRecord,
+  formatMatchupWinner,
   isPlayoffMatchup,
   MATCHUP_TYPE_LABEL,
   ordinal,
@@ -165,7 +166,9 @@ export default async function SeasonPage({ params }: PageProps) {
       key: "winner",
       header: "Winner",
       render: (m) => (
-        <span className="text-ink-dim text-xs">{m.winner ?? "—"}</span>
+        <span className="text-ink-dim text-xs">
+          {formatMatchupWinner(m.winner, m.home_score, m.away_score)}
+        </span>
       ),
     },
   ];
