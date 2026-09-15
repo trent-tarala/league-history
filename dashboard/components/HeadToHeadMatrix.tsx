@@ -4,14 +4,16 @@ import { getOwners } from "@/lib/data";
 import { getH2HCell } from "@/lib/aggregations";
 import { fmtPct, ownerSlug } from "@/lib/constants";
 
-function cellColor(games: number, wins: number, losses: number): string {
-  if (games === 0) return "transparent";
-  // Three flat states, no intensity scaling: green (winning record),
-  // yellow (tied), red (losing record). Every cell within a category looks
-  // identical so the matrix is easy to read at a glance.
-  if (wins > losses) return "rgba(61, 220, 132, 0.45)";
-  if (wins < losses) return "rgba(255, 93, 108, 0.45)";
-  return "rgba(245, 196, 81, 0.45)";
+function cellClasses(games: number, wins: number, losses: number): string {
+  if (games === 0) return "";
+  // Bright flat states — green (winning), yellow (tied), red (losing).
+  if (wins > losses) {
+    return "bg-accent-green/75 ring-1 ring-inset ring-accent-green/40";
+  }
+  if (wins < losses) {
+    return "bg-accent-red/75 ring-1 ring-inset ring-accent-red/40";
+  }
+  return "bg-accent-gold/80 ring-1 ring-inset ring-accent-gold/50";
 }
 
 export function HeadToHeadMatrix() {
@@ -68,26 +70,24 @@ export function HeadToHeadMatrix() {
                 const losses = cell?.losses ?? 0;
                 const ties = cell?.ties ?? 0;
                 const winPct = cell?.winPct ?? 0;
-                const bg = cellColor(games, wins, losses);
+                const colorClass = cellClasses(games, wins, losses);
+                const isTied = games > 0 && wins === losses;
                 return (
                   <td
                     key={col.owner_id}
-                    className={cn("rounded text-center h-[44px]")}
-                    style={{ backgroundColor: bg }}
+                    className={cn("rounded text-center h-[44px]", colorClass)}
                   >
                     {games > 0 ? (
                       <Link
                         href={`/head-to-head/${ownerSlug(row.owner_id)}/${ownerSlug(col.owner_id)}/`}
-                        className="block w-full h-full flex flex-col items-center justify-center text-ink no-underline hover:text-accent hover:no-underline"
+                        className={cn(
+                          "block w-full h-full flex items-center justify-center no-underline hover:no-underline hover:brightness-110 text-[11px] font-bold leading-none",
+                          isTied ? "text-bg" : "text-white"
+                        )}
                         title={`${row.display_name} vs ${col.display_name}: ${wins}-${losses}${ties > 0 ? `-${ties}` : ""} (${fmtPct(winPct)})`}
                       >
-                        <span className="text-[10px] font-semibold leading-none">
-                          {wins}-{losses}
-                          {ties > 0 ? `-${ties}` : ""}
-                        </span>
-                        <span className="text-[9px] text-ink-faint leading-none mt-0.5">
-                          {fmtPct(winPct, 0)}
-                        </span>
+                        {wins}-{losses}
+                        {ties > 0 ? `-${ties}` : ""}
                       </Link>
                     ) : (
                       <span className="text-ink-faint text-[10px]">—</span>
