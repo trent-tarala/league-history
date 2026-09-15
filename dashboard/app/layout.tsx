@@ -1,10 +1,46 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
+import { assetUrl, getSiteOrigin, getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
+const siteUrl = getSiteUrl();
+const title = "Venice Idiots";
+const description =
+  "Historical records, leaderboards, rivalries, and stats for the Venice Idiots fantasy football league.";
+const ogImage = assetUrl("/opengraph-image");
+
 export const metadata: Metadata = {
-  title: "Venice Idiots",
-  description: "Historical records, leaderboards, and stats for the league.",
+  // Origin only — basePath is applied explicitly on URLs below so og:image
+  // doesn't become /league-history/league-history/... on GitHub Pages.
+  metadataBase: new URL(getSiteOrigin()),
+  title,
+  description,
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: title,
+    title,
+    description,
+    images: [
+      {
+        url: ogImage,
+        width: 1200,
+        height: 630,
+        alt: "Venice Idiots — Fantasy Football League History",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [ogImage],
+  },
+  appleWebApp: {
+    title,
+  },
 };
 
 export default function RootLayout({
