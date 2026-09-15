@@ -47,7 +47,7 @@ ESPN_S2 = os.environ.get(
 SWID = os.environ.get("SWID", "{4E9A7DA2-9A5C-452F-9A7D-A29A5C952F8D}")
 
 DEFAULT_START_YEAR = 2019
-DEFAULT_END_YEAR = 2025
+DEFAULT_END_YEAR = 2026
 
 OUTPUT_FILE = Path(__file__).resolve().parent / "fantasy_league_history.json"
 
